@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<title>Paymo</title>
+<style>
+:root{--bg:#000;--card:#f4f4f2;--text:#050505;--muted:#777;--line:#d8d8d4;--nav:#f7f7f5;--accent:#111}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;color:#fff}
+button,input{font:inherit}.app{width:min(100%,430px);min-height:100dvh;margin:0 auto;background:#000;position:relative;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(106px + env(safe-area-inset-bottom))}
+.view{display:none}.view.active{display:block}.page-title{font-size:34px;font-weight:900;letter-spacing:-1.2px;margin:0 0 18px 2px}
+.card{background:var(--card);color:var(--text);border-radius:26px;padding:22px;margin-bottom:14px}.label{font-size:15px;font-weight:800}.money{font-size:42px;font-weight:900;letter-spacing:-2px;margin:8px 0 20px}
+.row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-top:1px solid var(--line);font-size:15px}.row:first-child{border-top:0}.row b{font-size:17px}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:9px}
+.chart-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:14px}.chart-head h2{font-size:18px;margin:0}.chart-head span{font-size:12px;color:var(--muted)}.chart{height:190px;display:flex;align-items:end;gap:14px;padding-top:12px}.bar-wrap{flex:1;text-align:center}.bar{width:100%;min-height:3px;border-radius:8px 8px 3px 3px;background:#111;transition:.2s}.bar-label{font-size:11px;color:#777;margin-top:7px}.bar-value{font-size:10px;font-weight:700;margin-bottom:4px}
+.empty{padding:24px 0;color:#777;text-align:center;font-size:13px}.bottom-nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,430px);height:84px;padding:8px 18px calc(8px + env(safe-area-inset-bottom));background:var(--nav);display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr 1fr;align-items:center;border-top:1px solid #ddd;z-index:20}
+.nav-btn,.add-btn{appearance:none;border:0;background:transparent;display:grid;place-items:center;margin:auto}.nav-btn{width:42px;height:42px;color:#aaa}.nav-btn.active{color:#111}.nav-btn svg{width:24px;height:24px;fill:currentColor}.add-btn{width:66px;height:66px;border-radius:50%;background:#000;box-shadow:0 5px 18px #0003;position:relative;top:-19px}.add-btn:before,.add-btn:after{content:"";position:absolute;width:25px;height:2.5px;background:#fff;border-radius:9px}.add-btn:after{transform:rotate(90deg)}
+.sheet-backdrop{position:fixed;inset:0;background:#0008;z-index:30}.sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,430px);background:#f7f7f5;color:#111;border-radius:28px 28px 0 0;padding:10px 18px calc(24px + env(safe-area-inset-bottom));z-index:31;box-shadow:0 -8px 30px #0004}.grab{width:45px;height:5px;background:#ccc;border-radius:9px;margin:0 auto 14px}.sheet-head{display:flex;justify-content:space-between;align-items:center}.sheet-head h2{font-size:24px;margin:4px 0 18px}.close{border:0;background:#e5e5e2;width:34px;height:34px;border-radius:50%;font-size:22px}.field{margin-bottom:17px}.field>span{display:block;font-size:13px;font-weight:800;margin-bottom:7px}.amount{display:flex;align-items:center;background:#fff;border:1px solid #ddd;border-radius:18px;padding:10px 14px}.amount b{font-size:25px}.amount input{width:100%;border:0;outline:0;font-size:35px;font-weight:900;background:transparent;padding:0 5px}.payees{display:grid;grid-template-columns:1fr 1fr;gap:8px}.payee{border:1px solid #d7d7d4;background:#fff;padding:12px;border-radius:15px;font-weight:700;text-align:left}.payee.selected{background:#111;color:#fff;border-color:#111}.date-input{width:100%;border:1px solid #d7d7d4;background:#fff;border-radius:15px;padding:13px}.save{width:100%;border:0;border-radius:17px;background:#000;color:#fff;font-weight:900;padding:15px;font-size:16px}.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);background:#fff;color:#111;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:50}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.placeholder{height:62dvh;display:grid;place-items:center;color:#888;text-align:center}.small{font-size:12px;color:#777;margin-top:5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <section id="home" class="view active">
+    <h1 class="page-title">HOME</h1>
+    <div class="card">
+      <div class="label">支払い準備</div>
+      <div id="homeTotal" class="money">¥0</div>
+      <div id="payeeRows"></div>
+    </div>
+    <div class="card">
+      <div class="chart-head"><h2>月別支出</h2><span>直近4ヶ月</span></div>
+      <div id="homeChart" class="chart"></div>
+    </div>
+  </section>
+
+  <section id="graph" class="view">
+    <h1 class="page-title">GRAPH</h1>
+    <div class="card">
+      <div class="label">今月の支出</div>
+      <div id="graphTotal" class="money">¥0</div>
+      <div id="historyRows"></div>
+    </div>
+    <div class="card">
+      <div class="chart-head"><h2>支出推移</h2><span>直近4ヶ月</span></div>
+      <div id="graphChart" class="chart"></div>
+    </div>
+  </section>
+
+  <section id="notify" class="view"><h1 class="page-title">NOTICE</h1><div class="placeholder">通知機能は後から追加できます。</div></section>
+  <section id="menu" class="view"><h1 class="page-title">MENU</h1><div class="placeholder">設定・支払先編集などを<br>ここへ追加できます。</div></section>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="home" aria-label="ホーム"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8.2a.8.8 0 0 1-.8.8h-5.4v-6H9.2v6H3.8a.8.8 0 0 1-.8-.8z"/></svg></button>
+  <button class="nav-btn" data-view="graph" aria-label="グラフ"><svg viewBox="0 0 24 24"><path d="M4 20h16v1H3V4h1zm3-2H5V11h2zm5 0H9V7h3zm5 0h-3V3h3zm4 0h-2V9h2z"/></svg></button>
+  <button id="addBtn" class="add-btn" aria-label="支出を追加"></button>
+  <button class="nav-btn" data-view="notify" aria-label="通知"><svg viewBox="0 0 24 24"><path d="M12 22a2.3 2.3 0 0 0 2.2-1.7H9.8A2.3 2.3 0 0 0 12 22Zm7-4.2-1.5-2V10a5.5 5.5 0 0 0-4.4-5.4V3.5a1.1 1.1 0 0 0-2.2 0v1.1A5.5 5.5 0 0 0 6.5 10v5.8l-1.5 2V19h14z"/></svg></button>
+  <button class="nav-btn" data-view="menu" aria-label="メニュー"><svg viewBox="0 0 24 24"><path d="M4 6h16v1.8H4zm0 5.1h16v1.8H4zm0 5.1h16V18H4z"/></svg></button>
+</nav>
+
+<div id="backdrop" class="sheet-backdrop" hidden></div>
+<section id="sheet" class="sheet" hidden>
+  <div class="grab"></div>
+  <div class="sheet-head"><h2>支出を記録</h2><button id="closeBtn" class="close">×</button></div>
+  <div class="field"><span>金額</span><div class="amount"><b>¥</b><input id="amount" inputmode="numeric" placeholder="0" /></div></div>
+  <div class="field"><span>支払先</span><div id="payees" class="payees"></div></div>
+  <div class="field"><span>日付</span><input id="date" class="date-input" type="date" /></div>
+  <button id="saveBtn" class="save">記録</button>
+</section>
+<div id="toast" class="toast">記録しました</div>
+
+<script>
+const PAYEES=[
+  {name:'メルカード',color:'#ff4d5a'},
+  {name:'ペイディ',color:'#5b5ce2'},
+  {name:'三井住友',color:'#00a67a'},
+  {name:'さいたまりそな',color:'#1b6ee8'},
+  {name:'その他',color:'#999'}
+];
+const KEY='ready-expenses-v1';
+const yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
+const today=()=>{const d=new Date();return d.toISOString().slice(0,10)};
+let expenses=JSON.parse(localStorage.getItem(KEY)||'[]');
+let selectedPayee=PAYEES[0].name;
+const $=id=>document.getElementById(id);
+function ym(d){const x=new Date(d+'T00:00:00');return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`}
+function monthKey(offset=0){const d=new Date();d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function monthLabel(key){const [y,m]=key.split('-').map(Number);return `${m}月`}
+function totalFor(key){return expenses.filter(e=>ym(e.date)===key).reduce((s,e)=>s+e.amount,0)}
+function payeeTotal(name,key=monthKey(0)){return expenses.filter(e=>e.payee===name&&ym(e.date)===key).reduce((s,e)=>s+e.amount,0)}
+function renderBars(el){const months=[-3,-2,-1,0].map(monthKey);const vals=months.map(totalFor);const max=Math.max(...vals,1);el.innerHTML=months.map((m,i)=>`<div class="bar-wrap"><div class="bar-value">${vals[i]?yen(vals[i]):''}</div><div class="bar" style="height:${Math.max(3,Math.round(vals[i]/max*138))}px"></div><div class="bar-label">${monthLabel(m)}</div></div>`).join('')}
+function render(){
+  const current=monthKey(0), currentTotal=totalFor(current);
+  $('homeTotal').textContent=yen(currentTotal);$('graphTotal').textContent=yen(currentTotal);
+  $('payeeRows').innerHTML=PAYEES.map(p=>`<div class="row"><span><i class="dot" style="background:${p.color}"></i>${p.name}</span><b>${yen(payeeTotal(p.name,current))}</b></div>`).join('');
+  $('historyRows').innerHTML=[0,-1,-2,-3].map(o=>{const k=monthKey(o);return `<div class="row"><span>${o===0?'今月':Math.abs(o)+'か月前'}</span><b>${yen(totalFor(k))}</b></div>`}).join('');
+  renderBars($('homeChart'));renderBars($('graphChart'));
+}
+function renderPayees(){
+  $('payees').innerHTML=PAYEES.map(p=>`<button class="payee ${p.name===selectedPayee?'selected':''}" data-payee="${p.name}"><i class="dot" style="background:${p.color}"></i>${p.name}</button>`).join('');
+  document.querySelectorAll('.payee').forEach(b=>b.onclick=()=>{selectedPayee=b.dataset.payee;renderPayees()});
+}
+function openSheet(){ $('backdrop').hidden=false;$('sheet').hidden=false;$('date').value=today();setTimeout(()=>$('amount').focus(),50)}
+function closeSheet(){ $('backdrop').hidden=true;$('sheet').hidden=true;$('amount').value=''}
+function showToast(){const t=$('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1300)}
+$('addBtn').onclick=openSheet;$('closeBtn').onclick=closeSheet;$('backdrop').onclick=closeSheet;
+$('saveBtn').onclick=()=>{const amount=Number(String($('amount').value).replace(/[^0-9]/g,''));if(!amount){$('amount').focus();return}expenses.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),amount,payee:selectedPayee,date:$('date').value||today()});localStorage.setItem(KEY,JSON.stringify(expenses));closeSheet();render();showToast()};
+document.querySelectorAll('.nav-btn').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));$(btn.dataset.view).classList.add('active')});
+renderPayees();render();
+</script>
+<script src="/paymo-d1.js"></script>
+</body>
+</html>
