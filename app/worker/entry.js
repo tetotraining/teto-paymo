@@ -28,10 +28,17 @@ async function expensesApi(request, env, url) {
   if (!key) return json({ error: 'unauthorized' }, 401);
 
   if (request.method === 'GET' && url.pathname === '/api/expenses') {
-    const result = await env.DB.prepare(
-      'SELECT id, amount, payee, date, COALESCE(usage_date, date) AS usageDate FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
-    ).bind(key).all();
-    return json({ expenses: result.results || [] });
+    try {
+      const result = await env.DB.prepare(
+        'SELECT id, amount, payee, date, COALESCE(usage_date, date) AS usageDate FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
+      ).bind(key).all();
+      return json({ expenses: result.results || [] });
+    } catch {
+      const legacy = await env.DB.prepare(
+        'SELECT id, amount, payee, date FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
+      ).bind(key).all();
+      return json({ expenses: (legacy.results || []).map(row => ({ ...row, usageDate: row.date })) });
+    }
   }
 
   if (request.method === 'POST' && url.pathname === '/api/expenses') {
@@ -42,17 +49,30 @@ async function expensesApi(request, env, url) {
     if (!rows.length) return json({ error: 'invalid expense' }, 400);
     if (rows.length > 500) return json({ error: 'too many expenses' }, 413);
 
-    const statements = rows.map((expense) => env.DB.prepare(
-      `INSERT INTO expenses (owner_key, id, amount, payee, date, usage_date, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-       ON CONFLICT(owner_key, id) DO UPDATE SET
-         amount = excluded.amount,
-         payee = excluded.payee,
-         date = excluded.date,
-         usage_date = excluded.usage_date`
-    ).bind(key, expense.id, expense.amount, expense.payee, expense.date, expense.usageDate));
-    await env.DB.batch(statements);
-    return json({ ok: true, count: rows.length });
+    try {
+      const statements = rows.map((expense) => env.DB.prepare(
+        `INSERT INTO expenses (owner_key, id, amount, payee, date, usage_date, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(owner_key, id) DO UPDATE SET
+           amount = excluded.amount,
+           payee = excluded.payee,
+           date = excluded.date,
+           usage_date = excluded.usage_date`
+      ).bind(key, expense.id, expense.amount, expense.payee, expense.date, expense.usageDate));
+      await env.DB.batch(statements);
+      return json({ ok: true, count: rows.length });
+    } catch {
+      const legacyStatements = rows.map((expense) => env.DB.prepare(
+        `INSERT INTO expenses (owner_key, id, amount, payee, date, created_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(owner_key, id) DO UPDATE SET
+           amount = excluded.amount,
+           payee = excluded.payee,
+           date = excluded.date`
+      ).bind(key, expense.id, expense.amount, expense.payee, expense.date));
+      await env.DB.batch(legacyStatements);
+      return json({ ok: true, count: rows.length, legacySchema: true });
+    }
   }
 
   const match = url.pathname.match(/^\/api\/expenses\/([^/]+)$/);
