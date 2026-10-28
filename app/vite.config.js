@@ -13,6 +13,8 @@ export default defineConfig({
         if (!next.includes('/paymo-history-payment.js')) next=next.replace('</body>', '<script src="/paymo-history-payment.js"></script>\n</body>');
         if (!next.includes('/paymo-installments.js')) next=next.replace('</body>', '<script src="/paymo-installments.js"></script>\n</body>');
         if (!next.includes('/paymo-installments-layout.js')) next=next.replace('</body>', '<script src="/paymo-installments-layout.js"></script>\n</body>');
+        if (!next.includes('/paymo-history-api.js')) next=next.replace('</body>', '<script src="/paymo-history-api.js"></script>\n</body>');
+        if (!next.includes('/paymo-history-edit.js')) next=next.replace('</body>', '<script src="/paymo-history-edit.js"></script>\n</body>');
         return next;
       }
     }
