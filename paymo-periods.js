@@ -17,8 +17,8 @@
       .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   }
 
-  function renderBarsBy(el, dateGetter) {
-    const months = [-3, -2, -1, 0].map(monthKey);
+  function renderBarsBy(el, dateGetter, offsets = [-3, -2, -1, 0]) {
+    const months = offsets.map(monthKey);
     const values = months.map((month) => totalByMonth(month, dateGetter));
     const max = Math.max(...values, 1);
     el.innerHTML = months.map((month, index) =>
@@ -43,7 +43,10 @@
       return `<div class="row"><span>${offset === 0 ? '今月' : Math.abs(offset) + 'か月前'}</span><b>${yen(totalByMonth(key, usageDateOf))}</b></div>`;
     }).join('');
 
-    renderBarsBy($('homeChart'), billingDateOf);
+    const homeChartMeta = $('homeChart')?.closest('.card')?.querySelector('.chart-head span');
+    if (homeChartMeta) homeChartMeta.textContent = '2ヶ月前〜翌々月';
+
+    renderBarsBy($('homeChart'), billingDateOf, [-2, -1, 0, 1, 2]);
     renderBarsBy($('graphChart'), usageDateOf);
   };
 
