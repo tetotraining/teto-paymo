@@ -46,8 +46,12 @@
     const homeChartMeta = $('homeChart')?.closest('.card')?.querySelector('.chart-head span');
     if (homeChartMeta) homeChartMeta.textContent = '2ヶ月前〜翌々月';
 
-    renderBarsBy($('homeChart'), billingDateOf, [-2, -1, 0, 1, 2]);
-    renderBarsBy($('graphChart'), usageDateOf);
+    const graphChartMeta = $('graphChart')?.closest('.card')?.querySelector('.chart-head span');
+    if (graphChartMeta) graphChartMeta.textContent = '2ヶ月前〜翌々月';
+
+    const fiveMonthOffsets = [-2, -1, 0, 1, 2];
+    renderBarsBy($('homeChart'), billingDateOf, fiveMonthOffsets);
+    renderBarsBy($('graphChart'), usageDateOf, fiveMonthOffsets);
   };
 
   render();
