@@ -16,6 +16,9 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-labels.js')) {
     html = html.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
   }
+  if (!html.includes('/paymo-periods.js')) {
+    html = html.replace('</body>', '<script src="/paymo-periods.js"></script>\n</body>');
+  }
 
   const headers = new Headers(response.headers);
   headers.delete('content-length');
