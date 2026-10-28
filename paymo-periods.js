@@ -98,6 +98,82 @@
     return PAYEES.find((payee) => payee.name === name)?.color || '#999999';
   }
 
+  function localToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function shortDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '--/--';
+    const [, month, day] = value.split('-');
+    return `${Number(month)}/${Number(day)}`;
+  }
+
+  function upcomingBillingItems() {
+    const today = localToday();
+    const grouped = new Map();
+
+    expenses.forEach((expense) => {
+      const date = billingDateOf(expense);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '') || date < today) return;
+      const name = String(expense.payee || 'その他');
+      const key = `${date}\u0000${name}`;
+      const current = grouped.get(key) || { name, date, amount: 0 };
+      current.amount += Number(expense.amount || 0);
+      grouped.set(key, current);
+    });
+
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ja')
+    );
+  }
+
+  function ensureUpcomingPayments(homeChartCard) {
+    if (!homeChartCard) return null;
+
+    let section = document.getElementById('upcomingPayments');
+    if (!section) {
+      section = document.createElement('div');
+      section.id = 'upcomingPayments';
+      section.className = 'upcoming-payments';
+      section.innerHTML = '<div class="upcoming-payments-title">直近の支払期日</div><div id="upcomingPaymentRows"></div>';
+      $('homeChart')?.insertAdjacentElement('afterend', section);
+    }
+
+    if (!document.getElementById('paymo-upcoming-payments-style')) {
+      const style = document.createElement('style');
+      style.id = 'paymo-upcoming-payments-style';
+      style.textContent = `
+        .upcoming-payments{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);}
+        .upcoming-payments-title{font-size:13px;font-weight:800;color:var(--muted);margin-bottom:4px;}
+        .upcoming-payment-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);}
+        .upcoming-payment-row:first-child{border-top:0;}
+        .upcoming-payment-name{min-width:0;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .upcoming-payment-date{font-size:13px;font-weight:800;color:var(--muted);white-space:nowrap;}
+        .upcoming-payment-amount{font-size:15px;font-weight:900;white-space:nowrap;text-align:right;}
+      `;
+      document.head.appendChild(style);
+    }
+    return section;
+  }
+
+  function renderUpcomingPayments(homeChartCard) {
+    const section = ensureUpcomingPayments(homeChartCard);
+    if (!section) return;
+    const rows = document.getElementById('upcomingPaymentRows');
+    if (!rows) return;
+
+    const items = upcomingBillingItems();
+    if (!items.length) {
+      rows.innerHTML = '<div class="empty">支払予定はありません。</div>';
+      return;
+    }
+
+    rows.innerHTML = items.map((item) =>
+      `<div class="upcoming-payment-row"><div class="upcoming-payment-name"><i class="dot" style="background:${payeeColor(item.name)}"></i>${escapeHtml(item.name)}</div><div class="upcoming-payment-date">${escapeHtml(shortDate(item.date))}</div><div class="upcoming-payment-amount">${yen(item.amount)}</div></div>`
+    ).join('');
+  }
+
   function formatHistoryDate(value) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '日付なし';
     const [year, month, day] = value.split('-');
@@ -187,6 +263,7 @@
 
     const fiveMonthOffsets = [-2, -1, 0, 1, 2];
     renderStackedBillingBars($('homeChart'), fiveMonthOffsets);
+    renderUpcomingPayments(homeChartCard);
     renderBarsBy($('graphChart'), usageDateOf, fiveMonthOffsets);
     renderExpenseHistory();
   };
