@@ -1,6 +1,7 @@
 (() => {
   const STORAGE_KEY='paymo_payees_v1';
-  const COLORS=['#E63946','#FF852F','#FFD166','#0D43FF','#4EA8DE','#E085FF','#B9F486','#5b5ce2','#00a67a','#999999'];
+  const COLORS=['#E63946','#FF852F','#FFD166','#0D43FF','#4EA8DE','#E085FF','#B9F486','#5B5CE2','#00A67A','#999999'];
+  let selectedColor=COLORS[0];
 
   function loadItems(){
     try{
@@ -35,9 +36,15 @@
     style.id='paymo-items-style';
     style.textContent=`
       .item-register-view{padding-bottom:16px}
-      .item-add-card{background:#f4f4f2;border-radius:20px;padding:12px;display:flex;gap:8px}
+      .item-add-card{background:#f4f4f2;border-radius:20px;padding:12px;display:grid;gap:11px}
+      .item-add-row{display:flex;gap:8px}
       .item-name-input{min-width:0;flex:1;border:1px solid #d7d7d4;background:#fff;border-radius:14px;padding:13px 14px;outline:none;color:#111}
       .item-add-btn{border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:900;padding:0 18px}
+      .item-color-label{font-size:12px;font-weight:800;color:#555;margin-left:2px}
+      .item-color-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+      .item-color-btn{appearance:none;border:0;background:transparent;padding:3px;display:grid;place-items:center}
+      .item-color-dot{width:34px;height:34px;border-radius:50%;background:var(--item-color);border:3px solid transparent;box-shadow:0 0 0 1px #0001}
+      .item-color-btn.selected .item-color-dot{border-color:#111;box-shadow:0 0 0 3px #fff,0 0 0 5px #111}
       .item-register-list{display:grid;gap:8px;margin-top:12px}
       .item-register-row{background:#f4f4f2;color:#111;border-radius:18px;padding:11px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
       .item-register-dot{width:11px;height:11px;border-radius:50%}
@@ -57,6 +64,16 @@
   function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id)?.classList.add('active')}
   function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
+  function renderColorPicker(){
+    const host=document.getElementById('itemColorPicker');
+    if(!host) return;
+    host.innerHTML=COLORS.map((color,i)=>`<button type="button" class="item-color-btn ${color===selectedColor?'selected':''}" data-color="${color}" aria-label="カラー${i+1}"><span class="item-color-dot" style="--item-color:${color}"></span></button>`).join('');
+    host.querySelectorAll('.item-color-btn').forEach(btn=>btn.onclick=()=>{
+      selectedColor=btn.dataset.color;
+      renderColorPicker();
+    });
+  }
+
   function renderList(){
     const host=document.getElementById('itemRegisterList');
     if(!host) return;
@@ -73,7 +90,20 @@
 
   function moveItem(index,delta){const items=loadItems(),target=index+delta;if(target<0||target>=items.length)return;[items[index],items[target]]=[items[target],items[index]];saveItems(items);renderList();syncApp(items)}
   function deleteItem(index){const items=loadItems();if(index<0||index>=items.length)return;items.splice(index,1);saveItems(items);renderList();syncApp(items)}
-  function addItem(){const input=document.getElementById('itemNameInput');if(!input)return;const name=input.value.trim().slice(0,30);if(!name){input.focus();return}const items=loadItems();if(items.some(x=>x.name===name)){input.select();return}items.push({name,color:COLORS[items.length%COLORS.length]});saveItems(items);input.value='';renderList();syncApp(items);input.focus()}
+  function addItem(){
+    const input=document.getElementById('itemNameInput');
+    if(!input) return;
+    const name=input.value.trim().slice(0,30);
+    if(!name){input.focus();return}
+    const items=loadItems();
+    if(items.some(x=>x.name===name)){input.select();return}
+    items.push({name,color:selectedColor});
+    saveItems(items);
+    input.value='';
+    renderList();
+    syncApp(items);
+    input.focus();
+  }
 
   function buildItemRegistration(){
     const menuList=document.querySelector('#menu .menu-list'),app=document.querySelector('.app');
@@ -81,11 +111,12 @@
     if(!document.getElementById('openItemRegistration')){const button=document.createElement('button');button.id='openItemRegistration';button.className='menu-item';button.innerHTML='<span>項目登録</span><span>›</span>';menuList.prepend(button)}
     let view=document.getElementById('itemRegistration');
     if(!view){view=document.createElement('section');view.id='itemRegistration';view.className='view item-register-view';app.appendChild(view)}
-    view.innerHTML=`<div class="design-head"><button id="itemRegisterBack" class="design-back" aria-label="戻る">‹</button><h1 class="design-title">項目登録</h1></div><div class="item-add-card"><input id="itemNameInput" class="item-name-input" maxlength="30" placeholder="カード・支払先名" /><button id="itemAddButton" class="item-add-btn">追加</button></div><div id="itemRegisterList" class="item-register-list"></div><p class="item-note">この順番が「支払い準備」と支出登録画面に反映されます。</p>`;
-    document.getElementById('openItemRegistration').onclick=()=>{renderList();showView('itemRegistration')};
+    view.innerHTML=`<div class="design-head"><button id="itemRegisterBack" class="design-back" aria-label="戻る">‹</button><h1 class="design-title">項目登録</h1></div><div class="item-add-card"><div class="item-add-row"><input id="itemNameInput" class="item-name-input" maxlength="30" placeholder="カード・支払先名" /><button id="itemAddButton" class="item-add-btn">追加</button></div><div class="item-color-label">カラー</div><div id="itemColorPicker" class="item-color-picker"></div></div><div id="itemRegisterList" class="item-register-list"></div><p class="item-note">この順番が「支払い準備」と支出登録画面に反映されます。</p>`;
+    document.getElementById('openItemRegistration').onclick=()=>{renderList();renderColorPicker();showView('itemRegistration')};
     document.getElementById('itemRegisterBack').onclick=()=>showView('menu');
     document.getElementById('itemAddButton').onclick=addItem;
     document.getElementById('itemNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addItem()}});
+    renderColorPicker();
     renderList();
   }
 
