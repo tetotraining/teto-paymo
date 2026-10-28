@@ -28,6 +28,12 @@
     return response.json();
   }
 
+  window.paymoSyncExpenses = async (rows) => {
+    const expensesToSync = Array.isArray(rows) ? rows.filter(Boolean) : [];
+    if (!expensesToSync.length) return;
+    return api('POST', { expenses: expensesToSync });
+  };
+
   async function syncFromD1() {
     try {
       const local = JSON.parse(localStorage.getItem(KEY) || '[]');
@@ -37,7 +43,7 @@
       const unsynced = local.filter(item => item?.id && !remoteIds.has(item.id));
 
       if (unsynced.length) {
-        await api('POST', { expenses: unsynced });
+        await window.paymoSyncExpenses(unsynced);
       }
 
       const merged = new Map();
