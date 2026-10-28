@@ -39,11 +39,21 @@
       const local = JSON.parse(localStorage.getItem(KEY) || '[]');
       const data = await api('GET');
       const remote = Array.isArray(data.expenses) ? data.expenses : [];
-      const remoteIds = new Set(remote.map(item => item.id));
-      const unsynced = local.filter(item => item?.id && !remoteIds.has(item.id));
+      const remoteById = new Map(remote.map(item => [item.id, item]));
+      const needsSync = local.filter(item => {
+        if (!item?.id) return false;
+        const saved = remoteById.get(item.id);
+        if (!saved) return true;
+        const localUsage = item.usageDate || item.usage_date || item.date || '';
+        const remoteUsage = saved.usageDate || saved.usage_date || saved.date || '';
+        return Number(saved.amount) !== Number(item.amount) ||
+          saved.payee !== item.payee ||
+          saved.date !== item.date ||
+          remoteUsage !== localUsage;
+      });
 
-      if (unsynced.length) {
-        await window.paymoSyncExpenses(unsynced);
+      if (needsSync.length) {
+        await window.paymoSyncExpenses(needsSync);
       }
 
       const merged = new Map();
