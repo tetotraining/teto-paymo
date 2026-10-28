@@ -32,8 +32,15 @@ export async function onRequestGet(context) {
       'SELECT id, amount, payee, date, COALESCE(usage_date, date) AS usageDate FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
     ).bind(ownerKey).all();
     return json({ expenses: result.results || [] });
-  } catch (error) {
-    return json({ error: 'database unavailable' }, 503);
+  } catch {
+    try {
+      const legacy = await context.env.DB.prepare(
+        'SELECT id, amount, payee, date FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
+      ).bind(ownerKey).all();
+      return json({ expenses: (legacy.results || []).map(row => ({ ...row, usageDate: row.date })) });
+    } catch {
+      return json({ error: 'database unavailable' }, 503);
+    }
   }
 }
 
@@ -64,10 +71,22 @@ export async function onRequestPost(context) {
          date = excluded.date,
          usage_date = excluded.usage_date`
     ).bind(ownerKey, expense.id, expense.amount, expense.payee, expense.date, expense.usageDate));
-
     await context.env.DB.batch(statements);
     return json({ ok: true, count: expenses.length });
-  } catch (error) {
-    return json({ error: 'database unavailable' }, 503);
+  } catch {
+    try {
+      const legacyStatements = expenses.map(expense => context.env.DB.prepare(
+        `INSERT INTO expenses (owner_key, id, amount, payee, date, created_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(owner_key, id) DO UPDATE SET
+           amount = excluded.amount,
+           payee = excluded.payee,
+           date = excluded.date`
+      ).bind(ownerKey, expense.id, expense.amount, expense.payee, expense.date));
+      await context.env.DB.batch(legacyStatements);
+      return json({ ok: true, count: expenses.length, legacySchema: true });
+    } catch {
+      return json({ error: 'database unavailable' }, 503);
+    }
   }
 }
