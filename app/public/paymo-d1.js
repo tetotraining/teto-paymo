@@ -66,6 +66,7 @@
       id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
       amount,
       payee: selectedPayee,
+      usageDate: $('usageDate')?.value || today(),
       date: $('date').value || today()
     };
 
