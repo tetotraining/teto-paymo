@@ -3,10 +3,12 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [
     {
-      name: 'paymo-design-settings',
+      name: 'paymo-settings',
       transformIndexHtml(html) {
-        if (html.includes('/paymo-design.js')) return html;
-        return html.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
+        let next=html;
+        if (!next.includes('/paymo-design.js')) next=next.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
+        if (!next.includes('/paymo-items.js')) next=next.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
+        return next;
       }
     }
   ],
