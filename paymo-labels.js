@@ -34,9 +34,25 @@
         overflow:hidden!important;
       }
       #date.date-input::-webkit-date-and-time-value{
-        min-height:0!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
         width:100%!important;
+        height:100%!important;
+        min-height:100%!important;
+        margin:0!important;
+        padding:0!important;
+        line-height:1!important;
         text-align:center!important;
+      }
+      #date.date-input::-webkit-datetime-edit{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        width:100%!important;
+        height:100%!important;
+        margin:0!important;
+        padding:0!important;
       }
     `;
     document.head.appendChild(style);
