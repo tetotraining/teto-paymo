@@ -1,20 +1,51 @@
 (() => {
-  function applyLabels(){
-    const date=document.getElementById('date');
-    const label=date?.closest('.field')?.querySelector(':scope > span');
-    if(label) label.textContent='支払い請求日';
+  const localToday=()=>{
+    const d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  function setupDateFields(){
+    const billingDate=document.getElementById('date');
+    const billingField=billingDate?.closest('.field');
+    if(!billingDate||!billingField)return;
+
+    const billingLabel=billingField.querySelector(':scope > span');
+    if(billingLabel)billingLabel.textContent='支払い請求日';
+
+    let usageDate=document.getElementById('usageDate');
+    if(!usageDate){
+      const usageField=document.createElement('div');
+      usageField.className='field';
+      usageField.innerHTML='<span>ご利用日</span><input id="usageDate" class="date-input" type="date" />';
+      billingField.parentNode.insertBefore(usageField,billingField);
+      usageDate=document.getElementById('usageDate');
+    }
+
+    if(usageDate&&!usageDate.value)usageDate.value=localToday();
+
+    const addBtn=document.getElementById('addBtn');
+    if(addBtn&&!addBtn.dataset.usageDateBound){
+      addBtn.dataset.usageDateBound='1';
+      addBtn.addEventListener('click',()=>{
+        requestAnimationFrame(()=>{
+          const input=document.getElementById('usageDate');
+          if(input)input.value=localToday();
+        });
+      });
+    }
   }
-  function fixDateField(){
-    if(document.getElementById('paymo-date-field-fix')) return;
+
+  function fixDateFields(){
+    if(document.getElementById('paymo-date-field-fix'))return;
     const style=document.createElement('style');
     style.id='paymo-date-field-fix';
     style.textContent=`
-      .field:has(#date){
+      .field:has(#date),.field:has(#usageDate){
         min-width:0!important;
         max-width:100%!important;
         overflow:hidden!important;
       }
-      #date.date-input{
+      #date.date-input,#usageDate.date-input{
         -webkit-appearance:none!important;
         appearance:none!important;
         display:block!important;
@@ -33,7 +64,7 @@
         box-sizing:border-box!important;
         overflow:hidden!important;
       }
-      #date.date-input::-webkit-date-and-time-value{
+      #date.date-input::-webkit-date-and-time-value,#usageDate.date-input::-webkit-date-and-time-value{
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
@@ -45,7 +76,7 @@
         line-height:1!important;
         text-align:center!important;
       }
-      #date.date-input::-webkit-datetime-edit{
+      #date.date-input::-webkit-datetime-edit,#usageDate.date-input::-webkit-datetime-edit{
         display:flex!important;
         align-items:center!important;
         justify-content:center!important;
@@ -57,7 +88,8 @@
     `;
     document.head.appendChild(style);
   }
-  function init(){applyLabels();fixDateField()}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+
+  function init(){setupDateFields();fixDateFields()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
