@@ -17,8 +17,9 @@ function normalizeExpense(value) {
   const amount = Number(value.amount);
   const payee = String(value.payee || '').slice(0, 100);
   const date = String(value.date || '');
-  if (!id || !Number.isFinite(amount) || amount <= 0 || !payee || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  return { id, amount: Math.round(amount), payee, date };
+  const usageDate = String(value.usageDate || value.usage_date || date);
+  if (!id || !Number.isFinite(amount) || amount <= 0 || !payee || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{4}-\d{2}-\d{2}$/.test(usageDate)) return null;
+  return { id, amount: Math.round(amount), payee, date, usageDate };
 }
 
 export async function onRequestGet(context) {
@@ -28,7 +29,7 @@ export async function onRequestGet(context) {
 
   try {
     const result = await context.env.DB.prepare(
-      'SELECT id, amount, payee, date FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
+      'SELECT id, amount, payee, date, COALESCE(usage_date, date) AS usageDate FROM expenses WHERE owner_key = ? ORDER BY date DESC, created_at DESC'
     ).bind(ownerKey).all();
     return json({ expenses: result.results || [] });
   } catch (error) {
@@ -55,13 +56,14 @@ export async function onRequestPost(context) {
 
   try {
     const statements = expenses.map(expense => context.env.DB.prepare(
-      `INSERT INTO expenses (owner_key, id, amount, payee, date, created_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `INSERT INTO expenses (owner_key, id, amount, payee, date, usage_date, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
        ON CONFLICT(owner_key, id) DO UPDATE SET
          amount = excluded.amount,
          payee = excluded.payee,
-         date = excluded.date`
-    ).bind(ownerKey, expense.id, expense.amount, expense.payee, expense.date));
+         date = excluded.date,
+         usage_date = excluded.usage_date`
+    ).bind(ownerKey, expense.id, expense.amount, expense.payee, expense.date, expense.usageDate));
 
     await context.env.DB.batch(statements);
     return json({ ok: true, count: expenses.length });
