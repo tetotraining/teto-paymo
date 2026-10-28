@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [
     {
       name: 'paymo-d1-client',
-      transformIndexHtml() {
+      transformIndexHtml(html) {
         return {
-          html: '',
+          html,
           tags: [
             {
               tag: 'script',
