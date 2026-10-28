@@ -9,18 +9,33 @@
     const style=document.createElement('style');
     style.id='paymo-date-field-fix';
     style.textContent=`
-      #date.date-input{
-        display:block!important;
-        width:100%!important;
+      .field:has(#date){
         min-width:0!important;
         max-width:100%!important;
+        overflow:hidden!important;
+      }
+      #date.date-input{
+        -webkit-appearance:none!important;
+        appearance:none!important;
+        display:block!important;
+        inline-size:100%!important;
+        width:100%!important;
+        min-inline-size:0!important;
+        min-width:0!important;
+        max-inline-size:100%!important;
+        max-width:100%!important;
+        block-size:48px!important;
         height:48px!important;
         margin:0!important;
         padding:0 13px!important;
+        border:1px solid #d7d7d4!important;
+        border-radius:15px!important;
         box-sizing:border-box!important;
+        overflow:hidden!important;
       }
       #date.date-input::-webkit-date-and-time-value{
         min-height:0!important;
+        width:100%!important;
         text-align:center!important;
       }
     `;
