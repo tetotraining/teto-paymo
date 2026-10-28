@@ -10,7 +10,7 @@
     if(!billingDate||!billingField)return;
 
     const billingLabel=billingField.querySelector(':scope > span');
-    if(billingLabel)billingLabel.textContent='支払い請求日';
+    if(billingLabel)billingLabel.textContent='請求日';
 
     let usageDate=document.getElementById('usageDate');
     if(!usageDate){
