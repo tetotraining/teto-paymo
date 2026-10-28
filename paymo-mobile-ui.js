@@ -36,41 +36,73 @@
   document.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
   document.addEventListener('dblclick', (event) => event.preventDefault(), { passive: false });
 
-  // iPhone-like gestures: dismiss sheets downward, or navigate back from the left edge.
-  let start = null;
-  const visible = (el) => !!el && !el.hidden && getComputedStyle(el).display !== 'none';
-  const tapClose = (id) => document.getElementById(id)?.click();
-  document.addEventListener('touchstart', (event) => {
-    if (event.touches.length !== 1) { start = null; return; }
+  // Interactive sheet gestures: follow the finger, then dismiss or spring back.
+  let gesture = null;
+  const visible = el => !!el && !el.hidden && getComputedStyle(el).display !== 'none';
+  const reset = (g, animate = true) => {
+    if (!g?.sheet) return;
+    const el = g.sheet;
+    el.style.transition = animate ? 'transform 240ms cubic-bezier(.2,.8,.2,1)' : 'none';
+    el.style.transform = 'translateX(-50%)';
+    el.style.willChange = '';
+    if (animate) setTimeout(() => { if (el.style.transform === 'translateX(-50%)') el.style.transition = ''; }, 260);
+    else el.style.transition = '';
+  };
+  const dismiss = g => {
+    const el = g.sheet;
+    el.style.transition = 'transform 220ms cubic-bezier(.25,.8,.4,1)';
+    el.style.transform = g.axis === 'x' ? 'translateX(calc(-50% + 110vw))' : 'translate(-50%, 110dvh)';
+    setTimeout(() => {
+      document.getElementById(el.id === 'historyEditSheet' ? 'historyEditClose' : 'closeBtn')?.click();
+      el.style.transition = 'none';
+      el.style.transform = 'translateX(-50%)';
+      requestAnimationFrame(() => { el.style.transition = ''; el.style.willChange = ''; });
+    }, 220);
+  };
+  document.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) { gesture = null; return; }
     const t = event.touches[0];
     const editor = document.getElementById('historyEditSheet');
     const add = document.getElementById('sheet');
-    const activeSheet = visible(editor) ? editor : visible(add) ? add : null;
-    start = { x: t.clientX, y: t.clientY, at: event.target, sheet: activeSheet,
-      scrollTop: activeSheet?.scrollTop || 0 };
-  }, { passive: true });
-  document.addEventListener('touchend', (event) => {
-    if (!start || event.changedTouches.length !== 1) { start = null; return; }
-    const s = start; start = null;
-    const t = event.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (s.sheet) {
-      if (!s.sheet.contains(s.at)) return;
-      if (dy > 95 && Math.abs(dy) > Math.abs(dx) * 1.35 &&
-          s.scrollTop <= 2 && s.sheet.scrollTop <= 2 &&
-          !s.at.closest('input,textarea,select')) {
-        if (s.sheet.id === 'historyEditSheet') tapClose('historyEditClose');
-        else tapClose('closeBtn');
-      } else if (s.x < 35 && dx > 90 && Math.abs(dx) > Math.abs(dy) * 1.35) {
-        if (s.sheet.id === 'historyEditSheet') tapClose('historyEditClose');
-        else tapClose('closeBtn');
+    const sheet = visible(editor) ? editor : visible(add) ? add : null;
+    gesture = { x:t.clientX, y:t.clientY, at:event.target, sheet,
+      top:sheet?.scrollTop || 0, axis:null, distance:0, time:Date.now() };
+  }, { passive:true });
+  document.addEventListener('touchmove', event => {
+    const g = gesture;
+    if (!g || !g.sheet || event.touches.length !== 1 || !g.sheet.contains(g.at)) return;
+    const t = event.touches[0], dx=t.clientX-g.x, dy=t.clientY-g.y;
+    if (!g.axis) {
+      if (Math.max(Math.abs(dx),Math.abs(dy)) < 9) return;
+      const interactive = g.at.closest('input,textarea,select,button,[contenteditable="true"]');
+      if (!interactive && dy > 0 && Math.abs(dy)>Math.abs(dx)*1.25 &&
+          g.top<=2 && g.sheet.scrollTop<=2) g.axis='y';
+      else if (!interactive && g.x<35 && dx>0 && dx>Math.abs(dy)*1.25) g.axis='x';
+      else return;
+      g.sheet.style.transition='none';
+      g.sheet.style.willChange='transform';
+    }
+    g.distance = Math.max(0,g.axis==='y'?dy:dx);
+    if (g.axis==='y') g.sheet.style.transform='translate(-50%, '+g.distance+'px)';
+    else g.sheet.style.transform='translateX(calc(-50% + '+g.distance+'px))';
+    if (event.cancelable) event.preventDefault();
+  }, { passive:false });
+  document.addEventListener('touchend', event => {
+    const g=gesture; gesture=null;
+    if (!g || event.changedTouches.length!==1) return;
+    const t=event.changedTouches[0], dx=t.clientX-g.x, dy=t.clientY-g.y;
+    if (g.sheet) {
+      if (g.axis) {
+        if (g.distance>Math.min(150,(g.axis==='y'?g.sheet.offsetHeight:g.sheet.offsetWidth)*.28) ||
+            (g.distance>65 && Date.now()-g.time<300)) dismiss(g);
+        else reset(g);
       }
       return;
     }
-    if (s.x > 35 || dx < 95 || Math.abs(dx) <= Math.abs(dy) * 1.35) return;
-    if (s.at.closest('input,textarea,select,[contenteditable="true"]')) return;
-    const active = document.querySelector('.view.active');
-    if (!active || active.id === 'home') return;
-    document.querySelector('.nav-btn[data-view="home"]')?.click();
-  }, { passive: true });
-  document.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+    if (g.x>35 || dx<95 || Math.abs(dx)<=Math.abs(dy)*1.35 ||
+        g.at.closest('input,textarea,select,[contenteditable="true"]')) return;
+    if (document.querySelector('.view.active')?.id !== 'home')
+      document.querySelector('.nav-btn[data-view="home"]')?.click();
+  }, { passive:true });
+  document.addEventListener('touchcancel', () => { const g=gesture; gesture=null; reset(g); }, { passive:true });
 })();
