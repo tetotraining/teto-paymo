@@ -12,6 +12,13 @@
     return key;
   }
 
+  function installmentSignature(item) {
+    const raw = Array.isArray(item?.installments) && item.installments.length
+      ? item.installments
+      : [{ date: item?.date || '', amount: Number(item?.amount || 0) }];
+    return JSON.stringify(raw.slice(0, 3).map((part) => ({ date: String(part?.date || ''), amount: Number(part?.amount || 0) })));
+  }
+
   const clientKey = getClientKey();
 
   async function api(method = 'GET', body) {
@@ -49,12 +56,11 @@
         return Number(saved.amount) !== Number(item.amount) ||
           saved.payee !== item.payee ||
           saved.date !== item.date ||
-          remoteUsage !== localUsage;
+          remoteUsage !== localUsage ||
+          installmentSignature(saved) !== installmentSignature(item);
       });
 
-      if (needsSync.length) {
-        await window.paymoSyncExpenses(needsSync);
-      }
+      if (needsSync.length) await window.paymoSyncExpenses(needsSync);
 
       const merged = new Map();
       remote.forEach(item => merged.set(item.id, item));
@@ -66,9 +72,6 @@
       // D1未接続・一時的な通信失敗時は既存の端末保存をそのまま利用する。
     }
   }
-
-  const originalOpenSheet = $('addBtn').onclick;
-  if (typeof originalOpenSheet === 'function') $('addBtn').onclick = originalOpenSheet;
 
   $('saveBtn').onclick = async () => {
     const amount = Number(String($('amount').value).replace(/[^0-9]/g, ''));
@@ -91,11 +94,7 @@
     render();
     showToast();
 
-    try {
-      await api('POST', { expense });
-    } catch {
-      // オフライン時も端末内に残し、次回起動時に自動同期する。
-    }
+    try { await api('POST', { expense }); } catch {}
   };
 
   syncFromD1();
