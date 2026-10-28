@@ -66,7 +66,7 @@
         billing.className = 'history-billing-date';
         right.appendChild(billing);
       }
-      billing.textContent = `支払日：${formatDate(billingDateOf(expense))}`;
+      billing.textContent = `請求日：${formatDate(billingDateOf(expense))}`;
     });
   }
 
