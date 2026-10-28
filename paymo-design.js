@@ -44,7 +44,7 @@
       .bottom-nav{height:calc(92px + env(safe-area-inset-bottom))!important;padding:0 0 env(safe-area-inset-bottom)!important;display:flex!important;justify-content:space-around!important;align-items:stretch!important;grid-template-columns:none!important}
       .nav-btn,.add-btn{width:20%!important;height:auto!important;margin:0!important;border:0!important;background:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important}
       .nav-btn{color:#9ca198!important}
-      .nav-btn svg{width:26px!important;height:26px!important;fill:currentColor!important;flex:0 0 26px}
+      .nav-btn svg{width:45px!important;height:45px!important;fill:currentColor!important;flex:0 0 45px}
       .nav-btn::after{content:"";display:block;width:1px;height:12px;flex:0 0 12px}
       .nav-btn.active{color:var(--accent)!important}
 
