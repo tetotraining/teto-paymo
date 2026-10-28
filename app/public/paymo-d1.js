@@ -12,6 +12,13 @@
     return key;
   }
 
+  function installmentSignature(item) {
+    const raw = Array.isArray(item?.installments) && item.installments.length
+      ? item.installments
+      : [{ date: item?.date || '', amount: Number(item?.amount || 0) }];
+    return JSON.stringify(raw.slice(0, 3).map((part) => ({ date: String(part?.date || ''), amount: Number(part?.amount || 0) })));
+  }
+
   const clientKey = getClientKey();
 
   async function api(method = 'GET', body) {
@@ -49,7 +56,8 @@
         return Number(saved.amount) !== Number(item.amount) ||
           saved.payee !== item.payee ||
           saved.date !== item.date ||
-          remoteUsage !== localUsage;
+          remoteUsage !== localUsage ||
+          installmentSignature(saved) !== installmentSignature(item);
       });
 
       if (needsSync.length) await window.paymoSyncExpenses(needsSync);
