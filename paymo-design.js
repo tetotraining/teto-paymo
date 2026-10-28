@@ -1,29 +1,23 @@
 (() => {
-  const COLORS={green:'#B9F486',red:'#E63946',orange:'#FF852F',yellow:'#FFD166',blue:'#0D43FF',lightBlue:'#4EA8DE',purple:'#E085FF'};
-  const NAMES={green:'green',red:'red',orange:'orange',yellow:'yellow',blue:'blue',lightBlue:'light Blue',purple:'purple',random:'random'};
-  const KEYS=['green','red','orange','yellow','blue','lightBlue','purple'];
-  const randomKey=KEYS[Math.floor(Math.random()*KEYS.length)];
+  const COLORS={
+    red:'#E63946',orange:'#FF852F',yellow:'#FFD166',pink:'#f0aae3',purple:'#E085FF',
+    green:'#B9F486',lightgreen:'#b9f068',pastelgreen:'#a7e2c8',blue:'#0D43FF',lightBlue:'#4EA8DE'
+  };
+  const NAMES={red:'red',orange:'orange',yellow:'yellow',pink:'pink',purple:'purple',green:'green',lightgreen:'lightgreen',pastelgreen:'pastelgreen',blue:'blue',lightBlue:'light Blue'};
+  const KEYS=['red','orange','yellow','pink','purple','green','lightgreen','pastelgreen','blue','lightBlue'];
   const ACCENT_KEY='paymo_accent';
   const DARK_KEY='paymo_dark_mode';
 
   function current(){
-    return {
-      dark: localStorage.getItem(DARK_KEY)!=='0',
-      accent: localStorage.getItem(ACCENT_KEY)||'purple'
-    };
+    const saved=localStorage.getItem(ACCENT_KEY)||'purple';
+    const accent=KEYS.includes(saved)?saved:'purple';
+    if(saved!==accent) localStorage.setItem(ACCENT_KEY,accent);
+    return {dark:localStorage.getItem(DARK_KEY)!=='0',accent};
   }
-
-  function resolvedAccent(key){
-    return COLORS[key==='random'?randomKey:key]||COLORS.purple;
-  }
-
-  function accentInk(key){
-    return ['yellow','orange','green','lightBlue','purple'].includes(key)?'#071006':'#ffffff';
-  }
-
+  function resolvedAccent(key){return COLORS[key]||COLORS.purple}
+  function accentInk(key){return ['red','blue'].includes(key)?'#ffffff':'#071006'}
   function applyDesign(){
-    const s=current();
-    const root=document.documentElement;
+    const s=current(),root=document.documentElement;
     root.dataset.theme=s.dark?'dark':'light';
     root.style.setProperty('--page-bg',s.dark?'#000000':'#ffffff');
     root.style.setProperty('--page-fg',s.dark?'#ffffff':'#111111');
@@ -34,96 +28,35 @@
     const meta=document.querySelector('meta[name="theme-color"]');
     if(meta)meta.setAttribute('content',s.dark?'#000000':'#ffffff');
   }
-
   function injectStyles(){
     if(document.getElementById('paymo-design-style'))return;
-    const style=document.createElement('style');
-    style.id='paymo-design-style';
-    style.textContent=`
+    const style=document.createElement('style');style.id='paymo-design-style';style.textContent=`
       :root{--page-bg:#000;--page-fg:#fff;--accent:#E085FF;--accent-ink:#071006}
-      html,body,.app{background:var(--page-bg)!important}
-      .page-title{color:var(--page-fg)!important}
-      .nav-btn.active{color:var(--accent)!important}
-      .add-btn,.save,.payee.selected{background:var(--accent)!important;color:var(--accent-ink)!important}
-      .add-btn:before,.add-btn:after{background:var(--accent-ink)!important}
+      html,body,.app{background:var(--page-bg)!important}.page-title{color:var(--page-fg)!important}.nav-btn.active{color:var(--accent)!important}
+      .add-btn,.save,.payee.selected{background:var(--accent)!important;color:var(--accent-ink)!important}.add-btn:before,.add-btn:after{background:var(--accent-ink)!important}
       .payee.selected .dot{outline:2px solid color-mix(in srgb,var(--accent-ink) 55%,transparent)}
-      .menu-list{display:grid;gap:10px}
-      .menu-item{width:100%;border:0;background:#f4f4f2;color:#111;border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:16px;text-align:left}
-      .menu-item span:last-child{font-size:24px;line-height:1;color:#888}
-      .design-view{padding-bottom:16px}
-      .design-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-      .design-back{width:38px;height:38px;border:0;border-radius:50%;background:#f4f4f2;color:#111;font-size:26px;line-height:1;display:grid;place-items:center}
-      .design-title{margin:0;color:var(--page-fg);font-size:30px;font-weight:900;letter-spacing:-1px}
-      .settings-label{display:block;color:var(--page-fg);font-size:13px;font-weight:800;margin:18px 4px 8px}
-      .design-card{background:#f4f4f2;color:#111;border-radius:22px;padding:18px 20px}
-      .design-card-row{display:flex;align-items:center;justify-content:space-between;gap:18px;font-weight:800}
-      .toggle{appearance:none;width:50px;height:30px;background:#d1d1d1;border-radius:999px;position:relative;transition:.18s;border:0;flex:none}
-      .toggle:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0002;transition:.18s}
-      .toggle:checked{background:var(--accent)}
-      .toggle:checked:before{transform:translateX(20px)}
-      .color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px;background:#f4f4f2;border-radius:22px;padding:18px 12px}
-      .color-option{display:grid;place-items:center;gap:7px;cursor:pointer;color:#111;font-size:11px;text-align:center}
-      .color-option input{position:absolute;opacity:0;pointer-events:none}
-      .color-dot{width:42px;height:42px;border-radius:50%;background:var(--swatch);display:block;border:3px solid transparent;box-shadow:0 0 0 1px #0001}
-      .color-option input:checked+.color-dot{border-color:#111;box-shadow:0 0 0 3px #fff,0 0 0 5px #111}
-      .color-option small{font-size:10px;font-weight:700;white-space:nowrap}
-    `;
-    document.head.appendChild(style);
+      .menu-list{display:grid;gap:10px}.menu-item{width:100%;border:0;background:#f4f4f2;color:#111;border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;font-weight:800;font-size:16px;text-align:left}.menu-item span:last-child{font-size:24px;line-height:1;color:#888}
+      .design-view{padding-bottom:16px}.design-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}.design-back{width:38px;height:38px;border:0;border-radius:50%;background:#f4f4f2;color:#111;font-size:26px;line-height:1;display:grid;place-items:center}.design-title{margin:0;color:var(--page-fg);font-size:30px;font-weight:900;letter-spacing:-1px}.settings-label{display:block;color:var(--page-fg);font-size:13px;font-weight:800;margin:18px 4px 8px}.design-card{background:#f4f4f2;color:#111;border-radius:22px;padding:18px 20px}.design-card-row{display:flex;align-items:center;justify-content:space-between;gap:18px;font-weight:800}.toggle{appearance:none;width:50px;height:30px;background:#d1d1d1;border-radius:999px;position:relative;transition:.18s;border:0;flex:none}.toggle:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0002;transition:.18s}.toggle:checked{background:var(--accent)}.toggle:checked:before{transform:translateX(20px)}
+      .color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 8px;background:#f4f4f2;border-radius:22px;padding:18px 10px}.color-option{display:grid;place-items:center;gap:7px;cursor:pointer;color:#111;font-size:11px;text-align:center}.color-option input{position:absolute;opacity:0;pointer-events:none}.color-dot{width:38px;height:38px;border-radius:50%;background:var(--swatch);display:block;border:3px solid transparent;box-shadow:0 0 0 1px #0001}.color-option input:checked+.color-dot{border-color:#111;box-shadow:0 0 0 3px #fff,0 0 0 5px #111}.color-option small{font-size:9px;font-weight:700;white-space:nowrap}
+    `;document.head.appendChild(style);
   }
-
   function designControls(){
     const s=current();
-    return `
-      <span class="settings-label">ベースカラー</span>
-      <section class="design-card">
-        <div class="design-card-row"><strong>ダークモード</strong><input id="paymoDarkModeToggle" class="toggle" type="checkbox" ${s.dark?'checked':''}></div>
-      </section>
-      <span class="settings-label">サブカラー</span>
-      <div class="color-grid">
-        ${[...KEYS,'random'].map(k=>`<label class="color-option"><input type="radio" name="paymoAccent" value="${k}" ${s.accent===k?'checked':''}><span class="color-dot" style="--swatch:${k==='random'?'conic-gradient(#B9F486 0 14.28%,#E63946 14.28% 28.56%,#FF852F 28.56% 42.84%,#FFD166 42.84% 57.12%,#0D43FF 57.12% 71.4%,#4EA8DE 71.4% 85.68%,#E085FF 85.68%)':COLORS[k]}"></span><small>${NAMES[k]}</small></label>`).join('')}
-      </div>`;
+    return `<span class="settings-label">ベースカラー</span><section class="design-card"><div class="design-card-row"><strong>ダークモード</strong><input id="paymoDarkModeToggle" class="toggle" type="checkbox" ${s.dark?'checked':''}></div></section><span class="settings-label">サブカラー</span><div class="color-grid">${KEYS.map(k=>`<label class="color-option"><input type="radio" name="paymoAccent" value="${k}" ${s.accent===k?'checked':''}><span class="color-dot" style="--swatch:${COLORS[k]}"></span><small>${NAMES[k]}</small></label>`).join('')}</div>`;
   }
-
   function bindDesign(){
     const dark=document.getElementById('paymoDarkModeToggle');
     if(dark)dark.onchange=()=>{localStorage.setItem(DARK_KEY,dark.checked?'1':'0');applyDesign()};
-    document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>{
-      r.onchange=()=>{if(!r.checked)return;localStorage.setItem(ACCENT_KEY,r.value);applyDesign()};
-    });
+    document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>r.onchange=()=>{if(!r.checked)return;localStorage.setItem(ACCENT_KEY,r.value);applyDesign()});
   }
-
-  function showView(id){
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    const target=document.getElementById(id);
-    if(target)target.classList.add('active');
-  }
-
+  function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id)?.classList.add('active')}
   function buildMenu(){
-    const menu=document.getElementById('menu');
-    const app=document.querySelector('.app');
-    if(!menu||!app)return;
+    const menu=document.getElementById('menu'),app=document.querySelector('.app');if(!menu||!app)return;
     menu.innerHTML=`<h1 class="page-title">MENU</h1><div class="menu-list"><button id="openDesignSettings" class="menu-item"><span>デザイン設定</span><span>›</span></button></div>`;
-
-    let design=document.getElementById('design');
-    if(!design){
-      design=document.createElement('section');
-      design.id='design';
-      design.className='view design-view';
-      app.appendChild(design);
-    }
+    let design=document.getElementById('design');if(!design){design=document.createElement('section');design.id='design';design.className='view design-view';app.appendChild(design)}
     design.innerHTML=`<div class="design-head"><button id="designBack" class="design-back" aria-label="戻る">‹</button><h1 class="design-title">デザイン設定</h1></div>${designControls()}`;
-
-    document.getElementById('openDesignSettings').onclick=()=>{showView('design');bindDesign()};
-    document.getElementById('designBack').onclick=()=>showView('menu');
-    bindDesign();
+    document.getElementById('openDesignSettings').onclick=()=>{showView('design');bindDesign()};document.getElementById('designBack').onclick=()=>showView('menu');bindDesign();
   }
-
-  function init(){
-    injectStyles();
-    applyDesign();
-    buildMenu();
-  }
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-  else init();
+  function init(){injectStyles();applyDesign();buildMenu()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
