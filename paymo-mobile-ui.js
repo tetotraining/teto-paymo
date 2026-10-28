@@ -70,7 +70,20 @@
   }, { passive:true });
   document.addEventListener('touchmove', event => {
     const g = gesture;
-    if (!g || !g.sheet || event.touches.length !== 1 || !g.sheet.contains(g.at)) return;
+    if (!g || event.touches.length !== 1) return;
+    if (!g.sheet) {
+      const active = document.querySelector('.view.active');
+      if (g.x > 35 || !['design','itemRegistration'].includes(active?.id) ||
+          g.at.closest('input,textarea,select,button,[contenteditable="true"]')) return;
+      const t=event.touches[0], dx=t.clientX-g.x, dy=t.clientY-g.y;
+      if (dx < 8 || dx < Math.abs(dy)*1.3) return;
+      g.page=active; g.axis='page'; g.distance=dx;
+      active.style.transition='none'; active.style.transform='translateX('+dx+'px)';
+      active.style.willChange='transform';
+      if (event.cancelable) event.preventDefault();
+      return;
+    }
+    if (!g.sheet.contains(g.at)) return;
     const t = event.touches[0], dx=t.clientX-g.x, dy=t.clientY-g.y;
     if (!g.axis) {
       if (Math.max(Math.abs(dx),Math.abs(dy)) < 9) return;
@@ -91,6 +104,17 @@
     const g=gesture; gesture=null;
     if (!g || event.changedTouches.length!==1) return;
     const t=event.changedTouches[0], dx=t.clientX-g.x, dy=t.clientY-g.y;
+    if (g.page) {
+      const page=g.page;
+      const commit=g.distance>Math.min(140,page.offsetWidth*.28);
+      page.style.transition='transform 220ms ease-out';
+      page.style.transform=commit?'translateX(100vw)':'translateX(0)';
+      setTimeout(()=>{
+        if (commit) document.getElementById(page.id==='design'?'designBack':'itemRegisterBack')?.click();
+        page.style.transition=''; page.style.transform=''; page.style.willChange='';
+      },220);
+      return;
+    }
     if (g.sheet) {
       if (g.axis) {
         if (g.distance>Math.min(150,(g.axis==='y'?g.sheet.offsetHeight:g.sheet.offsetWidth)*.28) ||
@@ -101,8 +125,10 @@
     }
     if (g.x>35 || dx<95 || Math.abs(dx)<=Math.abs(dy)*1.35 ||
         g.at.closest('input,textarea,select,[contenteditable="true"]')) return;
-    if (document.querySelector('.view.active')?.id !== 'home')
-      document.querySelector('.nav-btn[data-view="home"]')?.click();
+    const active = document.querySelector('.view.active');
+    if (active?.id === 'design') { document.getElementById('designBack')?.click(); return; }
+    if (active?.id === 'itemRegistration') { document.getElementById('itemRegisterBack')?.click(); return; }
+    if (active?.id !== 'home') document.querySelector('.nav-btn[data-view="home"]')?.click();
   }, { passive:true });
-  document.addEventListener('touchcancel', () => { const g=gesture; gesture=null; reset(g); }, { passive:true });
+  document.addEventListener('touchcancel', () => { const g=gesture; gesture=null; if(g?.page){g.page.style.transition='';g.page.style.transform='';g.page.style.willChange='';} reset(g); }, { passive:true });
 })();
