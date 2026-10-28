@@ -1,6 +1,12 @@
 (() => {
   const usageDateOf = (expense) => expense?.usageDate || expense?.usage_date || expense?.date || '';
   const billingDateOf = (expense) => expense?.date || '';
+  const escapeHtml = (value) => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 
   function totalByMonth(key, dateGetter) {
     return expenses
@@ -88,6 +94,71 @@
     }).join('');
   }
 
+  function payeeColor(name) {
+    return PAYEES.find((payee) => payee.name === name)?.color || '#999999';
+  }
+
+  function formatHistoryDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '日付なし';
+    const [year, month, day] = value.split('-');
+    return `${year}/${Number(month)}/${Number(day)}`;
+  }
+
+  function ensureHistoryCard() {
+    const graphChart = $('graphChart');
+    const graphCard = graphChart?.closest('.card');
+    if (!graphCard) return null;
+
+    let card = document.getElementById('expenseHistoryCard');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'expenseHistoryCard';
+      card.className = 'card expense-history-card';
+      card.innerHTML = '<div class="chart-head history-head"><h2>履歴</h2></div><div id="expenseHistoryRows"></div>';
+      graphCard.insertAdjacentElement('afterend', card);
+    }
+
+    if (!document.getElementById('paymo-expense-history-style')) {
+      const style = document.createElement('style');
+      style.id = 'paymo-expense-history-style';
+      style.textContent = `
+        .expense-history-card .history-head{margin-bottom:4px;}
+        .expense-history-card .history-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--line);}
+        .expense-history-card .history-entry:first-child{border-top:0;}
+        .expense-history-card .history-left{min-width:0;display:flex;flex-direction:column;gap:5px;}
+        .expense-history-card .history-date{font-size:12px;color:var(--muted);font-weight:700;}
+        .expense-history-card .history-payee{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .expense-history-card .history-amount{font-size:17px;font-weight:900;white-space:nowrap;}
+      `;
+      document.head.appendChild(style);
+    }
+    return card;
+  }
+
+  function renderExpenseHistory() {
+    const card = ensureHistoryCard();
+    if (!card) return;
+    const rows = document.getElementById('expenseHistoryRows');
+    if (!rows) return;
+
+    const sorted = expenses
+      .map((expense, index) => ({ expense, index, usageDate: usageDateOf(expense) }))
+      .sort((a, b) => {
+        const dateOrder = String(b.usageDate).localeCompare(String(a.usageDate));
+        return dateOrder || b.index - a.index;
+      });
+
+    if (!sorted.length) {
+      rows.innerHTML = '<div class="empty">まだ履歴がありません。</div>';
+      return;
+    }
+
+    rows.innerHTML = sorted.map(({ expense, usageDate }) => {
+      const name = String(expense.payee || 'その他');
+      return `<div class="history-entry"><div class="history-left"><div class="history-date">${escapeHtml(formatHistoryDate(usageDate))}</div><div class="history-payee"><i class="dot" style="background:${payeeColor(name)}"></i>${escapeHtml(name)}</div></div><div class="history-amount">${yen(expense.amount)}</div></div>`;
+    }).join('');
+  }
+
   render = function renderByUsageAndBillingDate() {
     const current = monthKey(0);
     const billingTotal = totalByMonth(current, billingDateOf);
@@ -117,6 +188,7 @@
     const fiveMonthOffsets = [-2, -1, 0, 1, 2];
     renderStackedBillingBars($('homeChart'), fiveMonthOffsets);
     renderBarsBy($('graphChart'), usageDateOf, fiveMonthOffsets);
+    renderExpenseHistory();
   };
 
   render();
