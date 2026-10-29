@@ -9,12 +9,15 @@
       max-width:100%!important;
       overflow:hidden!important;
     }
-    .installment-grid,
-    .installment-grid.three{
+    .installment-grid{
       width:100%!important;
       min-width:0!important;
-      grid-template-columns:1fr!important;
-      gap:12px!important;
+      grid-template-columns:repeat(2,minmax(0,1fr))!important;
+      gap:10px!important;
+    }
+    .installment-grid.three{
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+      gap:8px!important;
     }
     .installment-subfield{
       width:100%!important;
@@ -22,9 +25,9 @@
       max-width:100%!important;
       overflow:hidden!important;
     }
-    .installment-subfield>span{
-      font-size:12px!important;
-      letter-spacing:0!important;
+    .installment-grid.three .installment-subfield>span{
+      font-size:11px!important;
+      letter-spacing:-.25px!important;
     }
     .installment-date{
       -webkit-appearance:none!important;
@@ -36,15 +39,17 @@
       min-width:0!important;
       max-inline-size:100%!important;
       max-width:100%!important;
-      height:48px!important;
-      padding:0 8px!important;
-      border-radius:15px!important;
-      font-size:16px!important;
-      letter-spacing:0!important;
       box-sizing:border-box!important;
       overflow:hidden!important;
       contain:layout paint!important;
       margin:0!important;
+    }
+    .installment-grid.three .installment-date{
+      height:48px!important;
+      padding:0 3px!important;
+      border-radius:14px!important;
+      font-size:14px!important;
+      letter-spacing:-.45px!important;
     }
     .installment-date::-webkit-date-and-time-value,
     .installment-date::-webkit-datetime-edit{
@@ -59,21 +64,23 @@
       width:100%!important;
       min-width:0!important;
       max-width:100%!important;
-      padding:8px 10px!important;
-      border-radius:15px!important;
       box-sizing:border-box!important;
       overflow:hidden!important;
     }
-    .installment-amount b{
-      flex:0 0 auto!important;
-      margin-right:4px!important;
-      font-size:18px!important;
+    .installment-grid.three .installment-amount{
+      padding:8px 6px!important;
+      border-radius:14px!important;
     }
-    .installment-amount input{
+    .installment-grid.three .installment-amount b{
+      flex:0 0 auto!important;
+      margin-right:2px!important;
+      font-size:17px!important;
+    }
+    .installment-grid.three .installment-amount input{
       width:100%!important;
       min-width:0!important;
       max-width:100%!important;
-      font-size:23px!important;
+      font-size:20px!important;
       padding:0!important;
       text-align:center!important;
     }
