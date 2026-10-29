@@ -88,6 +88,8 @@
   }
 
   function formatHistoryDate(value) { if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '日付なし'; const [year, month, day] = value.split('-'); return `${year}/${Number(month)}/${Number(day)}`; }
+  function recentHistoryMonths() { return new Set([0, -1, -2].map(monthKey)); }
+
   function ensureHistoryCard() {
     const graphCard = $('graphChart')?.closest('.card'); if (!graphCard) return null;
     let card = document.getElementById('expenseHistoryCard');
@@ -98,7 +100,11 @@
 
   function renderExpenseHistory() {
     const card = ensureHistoryCard(), rows = document.getElementById('expenseHistoryRows'); if (!card || !rows) return;
-    const sorted = expenses.map((expense, index) => ({ expense, index, usageDate: usageDateOf(expense) })).sort((a, b) => String(b.usageDate).localeCompare(String(a.usageDate)) || b.index - a.index);
+    const allowedMonths = recentHistoryMonths();
+    const sorted = expenses
+      .map((expense, index) => ({ expense, index, usageDate: usageDateOf(expense) }))
+      .filter((item) => item.usageDate && allowedMonths.has(ym(item.usageDate)))
+      .sort((a, b) => String(b.usageDate).localeCompare(String(a.usageDate)) || b.index - a.index);
     if (!sorted.length) { rows.innerHTML = '<div class="empty">まだ履歴がありません。</div>'; return; }
     rows.innerHTML = sorted.map(({ expense, usageDate }) => { const name = String(expense.payee || 'その他'); return `<div class="history-entry"><div class="history-left"><div class="history-date">${escapeHtml(formatHistoryDate(usageDate))}</div><div class="history-payee"><i class="dot" style="background:${payeeColor(name)}"></i>${escapeHtml(name)}</div></div><div class="history-amount">${yen(expense.amount)}</div></div>`; }).join('');
   }
@@ -107,7 +113,10 @@
     const current = monthKey(0), billingTotal = billingTotalByMonth(current), usageTotal = usageTotalByMonth(current);
     $('homeTotal').textContent = yen(billingTotal); $('graphTotal').textContent = yen(usageTotal);
     $('payeeRows').innerHTML = PAYEES.map((payee) => `<div class="row"><span><i class="dot" style="background:${payee.color}"></i>${payee.name}</span><b>${yen(billingPayeeTotal(payee.name, current))}</b></div>`).join('');
-    $('historyRows').innerHTML = [0, -1, -2, -3].map((offset) => { const key = monthKey(offset); return `<div class="row"><span>${offset === 0 ? '今月' : Math.abs(offset) + 'か月前'}</span><b>${yen(usageTotalByMonth(key))}</b></div>`; }).join('');
+    const historyOffsets = [0, -1, -2].filter((offset) => usageTotalByMonth(monthKey(offset)) > 0);
+    $('historyRows').innerHTML = historyOffsets.length
+      ? historyOffsets.map((offset) => { const key = monthKey(offset); return `<div class="row"><span>${offset === 0 ? '今月' : Math.abs(offset) + 'か月前'}</span><b>${yen(usageTotalByMonth(key))}</b></div>`; }).join('')
+      : '<div class="empty">まだ履歴がありません。</div>';
     const homeChartCard = $('homeChart')?.closest('.card'), homeChartTitle = homeChartCard?.querySelector('.chart-head h2'); if (homeChartTitle) homeChartTitle.textContent = '月別支払額'; const homeChartMeta = homeChartCard?.querySelector('.chart-head span'); if (homeChartMeta) homeChartMeta.textContent = '2ヶ月前〜翌々月';
     const graphChartMeta = $('graphChart')?.closest('.card')?.querySelector('.chart-head span'); if (graphChartMeta) graphChartMeta.textContent = '2ヶ月前〜翌々月';
     const fiveMonthOffsets = [-2, -1, 0, 1, 2]; renderStackedBillingBars($('homeChart'), fiveMonthOffsets); renderUpcomingPayments(); renderUsageBars($('graphChart'), fiveMonthOffsets); renderExpenseHistory();
