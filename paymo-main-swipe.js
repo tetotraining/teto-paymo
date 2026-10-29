@@ -1,36 +1,55 @@
 (() => {
   const VIEW_ORDER = ['home', 'graph', 'notify', 'menu'];
-  const SHADE_START = 0.24;
+  let currentIndex = 0;
   let gesture = null;
+  let viewport = null;
+  let track = null;
+  let pages = [];
+  let resizeObserver = null;
 
   function ensureStyle() {
     if (document.getElementById('paymo-main-swipe-style')) return;
     const style = document.createElement('style');
     style.id = 'paymo-main-swipe-style';
     style.textContent = `
-      .paymo-main-swipe-front{
-        position:relative!important;
-        z-index:3!important;
-        background:var(--page-bg,#000)!important;
-        min-height:calc(100dvh - env(safe-area-inset-top) - 142px);
-        backface-visibility:hidden;
+      .paymo-main-viewport{
+        position:relative;
+        width:calc(100% + 32px);
+        margin-left:-16px;
+        overflow:hidden;
+        touch-action:pan-y;
+      }
+      .paymo-main-track{
+        display:flex;
+        align-items:flex-start;
+        width:100%;
+        transform:translate3d(0,0,0);
         will-change:transform;
       }
-      .paymo-main-swipe-preview{
-        position:absolute;
-        left:16px;
-        right:16px;
-        top:calc(env(safe-area-inset-top) + 18px);
-        bottom:calc(106px + env(safe-area-inset-bottom));
-        z-index:2;
-        pointer-events:none;
-        overflow:hidden;
-        background:var(--page-bg,#000);
-        opacity:${SHADE_START};
-        transform:scale(.985);
-        transform-origin:center top;
+      .paymo-main-track>.view{
+        display:block!important;
+        flex:0 0 100%;
+        width:100%;
+        min-width:100%;
+        padding:0 16px;
+        box-sizing:border-box;
         backface-visibility:hidden;
-        will-change:opacity,transform;
+      }
+      .paymo-main-edge-shadow{
+        position:absolute;
+        top:0;
+        bottom:0;
+        width:13px;
+        z-index:8;
+        pointer-events:none;
+      }
+      .paymo-main-edge-shadow.left{
+        left:0;
+        background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(0,0,0,.06) 42%,rgba(0,0,0,0));
+      }
+      .paymo-main-edge-shadow.right{
+        right:0;
+        background:linear-gradient(270deg,rgba(0,0,0,.16),rgba(0,0,0,.06) 42%,rgba(0,0,0,0));
       }
     `;
     document.head.appendChild(style);
@@ -54,118 +73,99 @@
     return selectors.some((selector) => Array.from(document.querySelectorAll(selector)).some(visible));
   }
 
-  function activeMainView() {
-    const active = document.querySelector('.view.active');
-    return active && VIEW_ORDER.includes(active.id) ? active : null;
+  function width() {
+    return Math.max(1, viewport?.clientWidth || document.querySelector('.app')?.clientWidth || window.innerWidth || 1);
   }
 
-  function targetFor(page, direction) {
-    const index = VIEW_ORDER.indexOf(page?.id || '');
-    if (index < 0) return null;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= VIEW_ORDER.length) return null;
-    return document.getElementById(VIEW_ORDER[nextIndex]);
+  function setViewportHeight(index = currentIndex) {
+    if (!viewport || !pages[index]) return;
+    const height = Math.ceil(pages[index].scrollHeight || pages[index].getBoundingClientRect().height || 0);
+    if (height > 0) viewport.style.height = `${height}px`;
   }
 
-  function makePreview(target) {
+  function setActiveClasses(index) {
+    const id = VIEW_ORDER[index];
+    pages.forEach((page, i) => page.classList.toggle('active', i === index));
+    document.querySelectorAll('.nav-btn').forEach((button) => {
+      if (!button.dataset.view) return;
+      button.classList.toggle('active', button.dataset.view === id);
+    });
+  }
+
+  function snapTo(index, animate = true) {
+    if (!track) return;
+    currentIndex = Math.max(0, Math.min(VIEW_ORDER.length - 1, index));
+    track.style.transition = animate ? 'transform 260ms cubic-bezier(.22,.72,.24,1)' : 'none';
+    track.style.transform = `translate3d(${-currentIndex * width()}px,0,0)`;
+    setActiveClasses(currentIndex);
+    setViewportHeight(currentIndex);
+    if (animate) {
+      setTimeout(() => {
+        if (track) track.style.transition = '';
+      }, 280);
+    } else {
+      requestAnimationFrame(() => { if (track) track.style.transition = ''; });
+    }
+  }
+
+  function setupPager() {
+    ensureStyle();
     const app = document.querySelector('.app');
-    if (!app || !target) return null;
-    const preview = target.cloneNode(true);
-    preview.removeAttribute('id');
-    preview.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
-    preview.classList.remove('view', 'active');
-    preview.classList.add('paymo-main-swipe-preview');
-    app.appendChild(preview);
-    return preview;
-  }
+    if (!app || document.getElementById('paymoMainViewport')) return;
 
-  function beginSwipe(g, dx) {
-    const direction = dx < 0 ? 1 : -1;
-    const target = targetFor(g.page, direction);
-    if (!target) return false;
-    const preview = makePreview(target);
-    if (!preview) return false;
+    pages = VIEW_ORDER.map((id) => document.getElementById(id));
+    if (pages.some((page) => !page)) return;
 
-    g.direction = direction;
-    g.targetId = target.id;
-    g.preview = preview;
-    g.engaged = true;
-    g.distance = 0;
+    const active = pages.findIndex((page) => page.classList.contains('active'));
+    currentIndex = active >= 0 ? active : 0;
 
-    g.page.classList.add('paymo-main-swipe-front');
-    g.page.style.transition = 'none';
-    g.page.style.transform = 'translate3d(0,0,0)';
-    return true;
-  }
+    viewport = document.createElement('div');
+    viewport.id = 'paymoMainViewport';
+    viewport.className = 'paymo-main-viewport';
 
-  function updateSwipe(g, dx) {
-    if (!g?.engaged) return;
-    const signedDistance = g.direction === 1 ? -dx : dx;
-    const distance = Math.max(0, signedDistance);
-    g.distance = distance;
+    track = document.createElement('div');
+    track.id = 'paymoMainTrack';
+    track.className = 'paymo-main-track';
 
-    const width = Math.max(g.page?.offsetWidth || window.innerWidth || 1, 1);
-    const progress = Math.min(1, distance / (width * .78));
-    const translate = g.direction === 1 ? -distance : distance;
+    const first = pages[0];
+    app.insertBefore(viewport, first);
+    viewport.appendChild(track);
+    pages.forEach((page) => track.appendChild(page));
 
-    g.page.style.transition = 'none';
-    g.page.style.transform = `translate3d(${translate}px,0,0)`;
-    if (g.preview) {
-      g.preview.style.transition = 'none';
-      g.preview.style.opacity = String(SHADE_START + (1 - SHADE_START) * progress);
-      g.preview.style.transform = `scale(${.985 + .015 * progress})`;
-    }
-  }
+    const leftShadow = document.createElement('div');
+    leftShadow.className = 'paymo-main-edge-shadow left';
+    const rightShadow = document.createElement('div');
+    rightShadow.className = 'paymo-main-edge-shadow right';
+    viewport.append(leftShadow, rightShadow);
 
-  function switchTo(targetId) {
-    const button = document.querySelector(`.nav-btn[data-view="${targetId}"]`);
-    if (button) {
-      button.click();
-      return;
-    }
-    document.querySelectorAll('.nav-btn').forEach((item) => item.classList.toggle('active', item.dataset.view === targetId));
-    document.querySelectorAll('.view').forEach((view) => view.classList.toggle('active', view.id === targetId));
-  }
+    snapTo(currentIndex, false);
 
-  function cleanup(g) {
-    if (!g) return;
-    if (g.page) {
-      g.page.classList.remove('paymo-main-swipe-front');
-      g.page.style.transition = '';
-      g.page.style.transform = '';
-      g.page.style.willChange = '';
-    }
-    g.preview?.remove();
-  }
+    resizeObserver = new ResizeObserver(() => setViewportHeight(currentIndex));
+    pages.forEach((page) => resizeObserver.observe(page));
 
-  function finishSwipe(g, commit) {
-    if (!g?.engaged || !g.page) return cleanup(g);
-    const side = g.direction === 1 ? -1 : 1;
+    document.addEventListener('click', (event) => {
+      const button = event.target?.closest?.('.nav-btn[data-view]');
+      if (!button) return;
+      const index = VIEW_ORDER.indexOf(button.dataset.view || '');
+      if (index < 0 || index === currentIndex) return;
+      requestAnimationFrame(() => snapTo(index, true));
+    });
 
-    g.page.style.transition = 'transform 220ms cubic-bezier(.22,.8,.3,1)';
-    g.page.style.transform = commit ? `translate3d(${side * 100}vw,0,0)` : 'translate3d(0,0,0)';
-    if (g.preview) {
-      g.preview.style.transition = 'opacity 220ms ease, transform 220ms ease';
-      g.preview.style.opacity = commit ? '1' : String(SHADE_START);
-      g.preview.style.transform = commit ? 'scale(1)' : 'scale(.985)';
-    }
-
-    setTimeout(() => {
-      if (commit) switchTo(g.targetId);
-      cleanup(g);
-    }, 220);
+    window.addEventListener('resize', () => snapTo(currentIndex, false));
   }
 
   document.addEventListener('touchstart', (event) => {
-    if (event.touches.length !== 1 || hasBlockingLayer()) {
+    if (!track || event.touches.length !== 1 || hasBlockingLayer()) {
       gesture = null;
       return;
     }
-    const page = activeMainView();
-    if (!page) {
+
+    const active = document.querySelector('.view.active');
+    if (!active || !VIEW_ORDER.includes(active.id)) {
       gesture = null;
       return;
     }
+
     const target = event.target;
     if (target?.closest?.('.bottom-nav,input,textarea,select,[contenteditable="true"],[data-no-page-swipe]')) {
       gesture = null;
@@ -174,27 +174,25 @@
 
     const touch = event.touches[0];
     gesture = {
-      page,
       startX: touch.clientX,
       startY: touch.clientY,
       lastX: touch.clientX,
       lastAt: performance.now(),
       velocityX: 0,
       engaged: false,
-      direction: 0,
-      targetId: '',
-      preview: null,
-      distance: 0
+      dx: 0
     };
   }, { passive:true });
 
   document.addEventListener('touchmove', (event) => {
     const g = gesture;
-    if (!g || event.touches.length !== 1 || hasBlockingLayer()) return;
+    if (!g || !track || event.touches.length !== 1 || hasBlockingLayer()) return;
 
     const touch = event.touches[0];
     const dx = touch.clientX - g.startX;
     const dy = touch.clientY - g.startY;
+    const ax = Math.abs(dx);
+    const ay = Math.abs(dy);
     const now = performance.now();
     const dt = Math.max(1, now - g.lastAt);
     g.velocityX = (touch.clientX - g.lastX) / dt;
@@ -202,33 +200,51 @@
     g.lastAt = now;
 
     if (!g.engaged) {
-      const ax = Math.abs(dx);
-      const ay = Math.abs(dy);
-      if (ax < 10 || ax < ay * 1.18) return;
-      if (!beginSwipe(g, dx)) return;
+      if (ax < 9 || ax < ay * 1.15) return;
+      g.engaged = true;
+      track.style.transition = 'none';
     }
 
-    updateSwipe(g, dx);
+    g.dx = dx;
+    const w = width();
+    const base = -currentIndex * w;
+    let dragX = dx;
+
+    if ((currentIndex === 0 && dx > 0) || (currentIndex === VIEW_ORDER.length - 1 && dx < 0)) {
+      dragX *= .18;
+    }
+
+    const targetIndex = dx < 0 ? Math.min(VIEW_ORDER.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
+    const currentHeight = pages[currentIndex]?.scrollHeight || 0;
+    const targetHeight = pages[targetIndex]?.scrollHeight || 0;
+    if (viewport && targetIndex !== currentIndex) viewport.style.height = `${Math.max(currentHeight, targetHeight)}px`;
+
+    track.style.transform = `translate3d(${base + dragX}px,0,0)`;
     if (event.cancelable) event.preventDefault();
   }, { passive:false });
 
   document.addEventListener('touchend', (event) => {
     const g = gesture;
     gesture = null;
-    if (!g?.engaged || event.changedTouches.length !== 1) return;
+    if (!g?.engaged || !track || event.changedTouches.length !== 1) return;
 
-    const width = Math.max(g.page?.offsetWidth || window.innerWidth || 1, 1);
-    const threshold = Math.min(118, width * .26);
-    const velocityTowardTarget = g.direction === 1 ? g.velocityX < -.42 : g.velocityX > .42;
-    const commit = g.distance >= threshold || (g.distance >= 44 && velocityTowardTarget);
-    finishSwipe(g, commit);
+    const w = width();
+    const distance = Math.abs(g.dx);
+    const direction = g.dx < 0 ? 1 : -1;
+    const candidate = currentIndex + direction;
+    const valid = candidate >= 0 && candidate < VIEW_ORDER.length;
+    const fastEnough = direction === 1 ? g.velocityX < -.42 : g.velocityX > .42;
+    const commit = valid && (distance >= Math.min(118, w * .26) || (distance >= 42 && fastEnough));
+
+    snapTo(commit ? candidate : currentIndex, true);
   }, { passive:true });
 
   document.addEventListener('touchcancel', () => {
     const g = gesture;
     gesture = null;
-    if (g?.engaged) finishSwipe(g, false);
+    if (g?.engaged) snapTo(currentIndex, true);
   }, { passive:true });
 
-  ensureStyle();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupPager, { once:true });
+  else setupPager();
 })();
