@@ -21,11 +21,40 @@
     return expenses.filter((expense) => expense.payee === name).reduce((sum, expense) => sum + billingPartsOf(expense).filter((part) => part.date && ym(part.date) === key).reduce((s, part) => s + part.amount, 0), 0);
   }
 
+  function usageBreakdown(key) {
+    const totals = new Map();
+    expenses.forEach((expense) => {
+      const usageDate = usageDateOf(expense);
+      if (!usageDate || ym(usageDate) !== key) return;
+      const name = String(expense.payee || 'その他');
+      const amount = Number(expense.amount || 0);
+      if (amount) totals.set(name, (totals.get(name) || 0) + amount);
+    });
+    const result = [], seen = new Set();
+    PAYEES.forEach((payee) => {
+      const amount = totals.get(payee.name) || 0;
+      if (!amount) return;
+      result.push({ name: payee.name, color: payee.color || '#999999', amount });
+      seen.add(payee.name);
+    });
+    totals.forEach((amount, name) => {
+      if (!amount || seen.has(name)) return;
+      result.push({ name, color: '#999999', amount });
+    });
+    return result;
+  }
+
   function renderUsageBars(el, offsets = [-3, -2, -1, 0]) {
+    ensureStackedChartStyle();
     const months = offsets.map(monthKey);
     const values = months.map(usageTotalByMonth);
     const max = Math.max(...values, 1);
-    el.innerHTML = months.map((month, index) => `<div class="bar-wrap"><div class="bar-value">${values[index] ? yen(values[index]) : ''}</div><div class="bar" style="height:${Math.max(3, Math.round(values[index] / max * 138))}px"></div><div class="bar-label">${monthLabel(month)}</div></div>`).join('');
+    el.innerHTML = months.map((month, index) => {
+      const total = values[index];
+      const barHeight = total ? Math.max(3, Math.round(total / max * 138)) : 3;
+      const segments = total ? usageBreakdown(month).map((item) => `<div class="stack-segment" style="height:${(item.amount / total * 100).toFixed(4)}%;background:${item.color}"></div>`).join('') : '';
+      return `<div class="bar-wrap"><div class="bar-value">${total ? yen(total) : ''}</div><div class="stack-bar ${total ? '' : 'zero'}" style="height:${barHeight}px">${segments}</div><div class="bar-label">${monthLabel(month)}</div></div>`;
+    }).join('');
   }
 
   function billingBreakdown(key) {
@@ -45,7 +74,7 @@
     if (document.getElementById('paymo-stacked-home-chart-style')) return;
     const style = document.createElement('style');
     style.id = 'paymo-stacked-home-chart-style';
-    style.textContent = `#homeChart .stack-bar{width:100%;min-height:3px;border-radius:8px 8px 3px 3px;overflow:hidden;display:flex;flex-direction:column-reverse;background:transparent;padding:0!important}#homeChart .stack-bar.zero{background:#111;height:3px!important;min-height:3px!important}#homeChart .stack-segment{width:100%;min-height:0;flex:none}`;
+    style.textContent = `#homeChart .stack-bar,#graphChart .stack-bar{width:100%;min-height:3px;border-radius:8px 8px 3px 3px;overflow:hidden;display:flex;flex-direction:column-reverse;background:transparent;padding:0!important}#homeChart .stack-bar.zero,#graphChart .stack-bar.zero{background:#111;height:3px!important;min-height:3px!important}#homeChart .stack-segment,#graphChart .stack-segment{width:100%;min-height:0;flex:none}`;
     document.head.appendChild(style);
   }
 
