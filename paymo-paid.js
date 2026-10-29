@@ -150,8 +150,8 @@
       .history-edit-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
       #historyEditSave{order:1}
       #historyEditDelete{order:2}
-      .history-edit-paid{order:3;grid-column:1/-1;border:1px solid #b9dfc5;border-radius:17px;padding:15px;font-size:16px;font-weight:900;background:#e9f7ee;color:#168a45}
-      .history-edit-paid.active{background:#22a559;color:#fff;border-color:#22a559}
+      .history-edit-paid{order:3;grid-column:1/-1;border:1px solid rgba(34,165,89,.28);border-radius:17px;padding:15px;font-size:16px;font-weight:900;background:rgba(34,165,89,.14);color:#168a45;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+      .history-edit-paid.active{background:rgba(34,165,89,.24);color:#168a45;border-color:rgba(34,165,89,.42);box-shadow:inset 0 0 0 1px rgba(34,165,89,.08)}
     `;
     document.head.appendChild(style);
   }
