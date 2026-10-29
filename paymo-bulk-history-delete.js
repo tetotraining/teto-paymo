@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'ready-expenses-v1';
   const CLIENT_KEY_STORAGE = 'paymo-d1-client-key-v1';
   const PENDING_DELETE_KEY = 'paymo-pending-delete-v1';
+  const SHADE_ALPHA = 0.58;
 
   const usageDateOf = (expense) => expense?.usageDate || expense?.usage_date || expense?.date || '';
   const monthOf = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? String(value).slice(0, 7) : '';
@@ -15,11 +16,12 @@
     const style = document.createElement('style');
     style.id = 'paymo-bulk-history-delete-style';
     style.textContent = `
-      .bulk-history-shade{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.58);display:flex;justify-content:center;align-items:flex-start;opacity:0;transition:opacity .22s ease}
-      .bulk-history-shade.open{opacity:1}
-      .bulk-history-sheet{width:min(100%,430px);max-height:min(78dvh,720px);overflow:auto;background:var(--surface);color:var(--page-fg);border-radius:0 0 30px 30px;padding:calc(env(safe-area-inset-top) + 16px) 18px 22px;box-shadow:0 16px 40px rgba(0,0,0,.34);transform:translateY(-105%);transition:transform .26s cubic-bezier(.2,.8,.2,1);box-sizing:border-box;scrollbar-width:none;overscroll-behavior:contain}
+      .bulk-history-shade{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,0);display:flex;justify-content:center;align-items:flex-end;transition:background-color .28s ease;overscroll-behavior:none}
+      .bulk-history-shade.open{background:rgba(0,0,0,.58)}
+      .bulk-history-sheet{width:min(100%,430px);max-height:min(82dvh,760px);overflow:auto;background:var(--surface);color:var(--page-fg);border-radius:30px 30px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -14px 42px rgba(0,0,0,.34);transform:translate3d(0,105%,0);transition:transform .32s cubic-bezier(.22,.72,.24,1);box-sizing:border-box;scrollbar-width:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;will-change:transform}
       .bulk-history-sheet::-webkit-scrollbar{display:none}
-      .bulk-history-shade.open .bulk-history-sheet{transform:translateY(0)}
+      .bulk-history-shade.open .bulk-history-sheet{transform:translate3d(0,0,0)}
+      .bulk-history-handle{width:44px;height:5px;background:var(--theme-muted);opacity:.55;border-radius:99px;margin:0 auto 14px}
       .bulk-history-topline{display:flex;align-items:center;justify-content:space-between;gap:12px}
       .bulk-history-kicker{font-size:11px;font-weight:900;letter-spacing:.12em;color:var(--theme-muted)}
       .bulk-history-close{width:34px;height:34px;border:0;border-radius:50%;background:var(--page-bg);color:var(--page-fg);font-size:22px;line-height:1;display:grid;place-items:center}
@@ -35,7 +37,6 @@
       .bulk-history-delete-yes{background:#E63946;color:#fff}
       .bulk-history-delete-no{background:var(--page-bg);color:var(--page-fg);border:1px solid var(--theme-line)!important}
       .bulk-history-actions button:disabled{opacity:.45}
-      .bulk-history-handle{width:42px;height:5px;background:var(--theme-muted);opacity:.55;border-radius:99px;margin:20px auto 0}
     `;
     document.head.appendChild(style);
   }
@@ -91,10 +92,7 @@
     try {
       const response = await fetch('/api/expenses/bulk-delete', {
         method: 'DELETE',
-        headers: {
-          'content-type': 'application/json',
-          'x-paymo-key': key
-        },
+        headers: { 'content-type': 'application/json', 'x-paymo-key': key },
         body: JSON.stringify({ ids }),
         cache: 'no-store'
       });
@@ -104,45 +102,114 @@
     }
   }
 
+  function animateClose(shade, distance) {
+    const sheet = shade?.querySelector('.bulk-history-sheet');
+    if (!shade || !sheet || shade.dataset.closing === '1') return;
+    shade.dataset.closing = '1';
+    sheet.style.transition = 'transform .26s cubic-bezier(.4,0,1,1)';
+    sheet.style.transform = `translate3d(0,${Math.max(distance || 0, sheet.offsetHeight + 36)}px,0)`;
+    shade.style.transition = 'background-color .32s ease';
+    shade.style.backgroundColor = 'rgba(0,0,0,0)';
+    const done = () => shade.remove();
+    sheet.addEventListener('transitionend', done, { once: true });
+    setTimeout(done, 360);
+  }
+
   function closeFlow() {
     const shade = document.getElementById('bulkHistoryFlowShade');
     if (!shade) return;
-    shade.classList.remove('open');
-    setTimeout(() => shade.remove(), 230);
+    animateClose(shade);
+  }
+
+  function bindDragToClose(shade, sheet) {
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let lastTime = 0;
+    let velocityY = 0;
+    let tracking = false;
+    let mode = null;
+    const LOCK = 8;
+    const CLOSE_Y = 105;
+
+    const reset = () => {
+      sheet.style.transition = 'transform .28s cubic-bezier(.22,.72,.24,1)';
+      sheet.style.transform = 'translate3d(0,0,0)';
+      shade.style.transition = 'background-color .28s ease';
+      shade.style.backgroundColor = `rgba(0,0,0,${SHADE_ALPHA})`;
+    };
+
+    sheet.addEventListener('touchstart', (event) => {
+      if (shade.dataset.closing === '1' || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      startX = lastX = touch.clientX;
+      startY = lastY = touch.clientY;
+      lastTime = performance.now();
+      velocityY = 0;
+      tracking = true;
+      mode = null;
+    }, { passive: true });
+
+    sheet.addEventListener('touchmove', (event) => {
+      if (!tracking || shade.dataset.closing === '1' || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const now = performance.now();
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+
+      if (!mode) {
+        if (dy > LOCK && ay > ax * 1.05 && sheet.scrollTop <= 0) mode = 'drag';
+        else if (ay > LOCK || ax > LOCK) mode = 'scroll';
+      }
+      if (mode !== 'drag') {
+        lastX = touch.clientX;
+        lastY = touch.clientY;
+        lastTime = now;
+        return;
+      }
+
+      event.preventDefault();
+      const distance = Math.max(0, dy);
+      const dt = Math.max(1, now - lastTime);
+      velocityY = (touch.clientY - lastY) / dt;
+      lastX = touch.clientX;
+      lastY = touch.clientY;
+      lastTime = now;
+
+      sheet.style.transition = 'none';
+      shade.style.transition = 'none';
+      sheet.style.transform = `translate3d(0,${distance}px,0)`;
+      const fadeRange = Math.max(220, sheet.offsetHeight * .72);
+      const progress = Math.min(1, distance / fadeRange);
+      shade.style.backgroundColor = `rgba(0,0,0,${(SHADE_ALPHA * (1 - progress)).toFixed(3)})`;
+    }, { passive: false });
+
+    sheet.addEventListener('touchend', () => {
+      if (!tracking || shade.dataset.closing === '1') return;
+      tracking = false;
+      const dy = Math.max(0, lastY - startY);
+      if (mode === 'drag' && (dy >= CLOSE_Y || (dy >= 48 && velocityY > .55))) {
+        animateClose(shade, sheet.offsetHeight + 40);
+        return;
+      }
+      if (mode === 'drag') reset();
+    }, { passive: true });
+
+    sheet.addEventListener('touchcancel', () => {
+      if (shade.dataset.closing === '1') return;
+      tracking = false;
+      if (mode === 'drag') reset();
+    }, { passive: true });
   }
 
   function bindShade(shade) {
     shade.onclick = (event) => { if (event.target === shade) closeFlow(); };
     shade.querySelector('.bulk-history-close')?.addEventListener('click', closeFlow);
     const sheet = shade.querySelector('.bulk-history-sheet');
-    if (!sheet) return;
-    let startY = 0;
-    let startX = 0;
-    let lastY = 0;
-    let lastX = 0;
-    let tracking = false;
-    sheet.addEventListener('touchstart', (event) => {
-      if (event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      startY = lastY = touch.clientY;
-      startX = lastX = touch.clientX;
-      tracking = true;
-    }, { passive: true });
-    sheet.addEventListener('touchmove', (event) => {
-      if (!tracking || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      lastY = touch.clientY;
-      lastX = touch.clientX;
-      if (Math.abs(lastX - startX) > Math.abs(lastY - startY) * 1.2) tracking = false;
-    }, { passive: true });
-    sheet.addEventListener('touchend', () => {
-      if (!tracking) return;
-      tracking = false;
-      const dy = lastY - startY;
-      const dx = Math.abs(lastX - startX);
-      if (dy <= -70 && Math.abs(dy) > dx * 1.2) closeFlow();
-    }, { passive: true });
-    sheet.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+    if (sheet) bindDragToClose(shade, sheet);
   }
 
   function mountSheet(innerHtml) {
@@ -150,7 +217,7 @@
     const shade = document.createElement('div');
     shade.id = 'bulkHistoryFlowShade';
     shade.className = 'bulk-history-shade';
-    shade.innerHTML = `<section class="bulk-history-sheet">${innerHtml}<div class="bulk-history-handle"></div></section>`;
+    shade.innerHTML = `<section class="bulk-history-sheet"><div class="bulk-history-handle"></div>${innerHtml}</section>`;
     document.body.appendChild(shade);
     bindShade(shade);
     requestAnimationFrame(() => requestAnimationFrame(() => shade.classList.add('open')));
@@ -179,10 +246,7 @@
 
   function openConfirm(month) {
     const targets = expenses.filter((expense) => monthOf(usageDateOf(expense)) === month);
-    if (!targets.length) {
-      openPicker();
-      return;
-    }
+    if (!targets.length) return openPicker();
     const label = monthLabel(month);
     const shade = mountSheet(`
       <div class="bulk-history-topline"><span class="bulk-history-kicker">DELETE HISTORY</span><button type="button" class="bulk-history-close" aria-label="閉じる">×</button></div>
@@ -199,10 +263,7 @@
 
   async function executeDelete(month) {
     const targets = expenses.filter((expense) => monthOf(usageDateOf(expense)) === month);
-    if (!targets.length) {
-      closeFlow();
-      return;
-    }
+    if (!targets.length) return closeFlow();
 
     const ids = targets.map((expense) => String(expense.id || '')).filter(Boolean);
     const label = monthLabel(month);
