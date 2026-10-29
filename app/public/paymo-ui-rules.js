@@ -30,6 +30,7 @@
     const style = document.createElement('style');
     style.id = 'paymo-selection-clarity-style';
     style.textContent = `
+      :root{--accent-ink:#fff!important;}
       .split-button,.history-edit-split-button{
         background:var(--surface)!important;
         color:var(--page-fg)!important;
@@ -37,10 +38,15 @@
         box-shadow:none!important;
         transition:background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .08s ease;
       }
-      .split-button.selected,.history-edit-split-button.selected{
+      .split-button.selected,.history-edit-split-button.selected,
+      .payee.selected,.history-edit-payee.selected,
+      .save,.history-edit-save{
         background:var(--accent)!important;
-        color:var(--accent-ink)!important;
+        color:#fff!important;
+        -webkit-text-fill-color:#fff!important;
         border-color:var(--accent)!important;
+      }
+      .split-button.selected,.history-edit-split-button.selected{
         box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 38%,transparent)!important;
       }
       .split-button:active,.history-edit-split-button:active,.payee:active,.history-edit-payee:active{
