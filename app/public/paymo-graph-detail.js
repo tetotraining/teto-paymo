@@ -13,16 +13,15 @@
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-  function formatMonth(value) {
+  function shortMonth(value) {
     if (!validMonth(value)) return '';
-    const [year, month] = value.split('-');
-    return `${year}年${Number(month)}月`;
+    return `${Number(value.split('-')[1])}月`;
   }
 
   function formatDate(value) {
     if (!validDate(value)) return '日付なし';
-    const [year, month, day] = value.split('-');
-    return `${year}/${Number(month)}/${Number(day)}`;
+    const [, month, day] = value.split('-');
+    return `${Number(month)}/${Number(day)}`;
   }
 
   function payeeColor(name) {
@@ -38,44 +37,44 @@
     return [{ date: String(expense?.date || ''), amount: Number(expense?.amount || 0) }];
   }
 
-  function usageBreakdown(month) {
-    const totals = new Map();
-    expenses.forEach((expense) => {
-      const usageDate = usageDateOf(expense);
-      if (!usageDate || ym(usageDate) !== month) return;
+  function orderedNames(names) {
+    const known = PAYEES.map((payee) => payee.name).filter((name) => names.has(name));
+    const rest = Array.from(names).filter((name) => !known.includes(name)).sort((a, b) => a.localeCompare(b, 'ja'));
+    return [...known, ...rest];
+  }
+
+  function usageGroups(month) {
+    const groups = new Map();
+    expenses.forEach((expense, index) => {
+      const date = usageDateOf(expense);
+      if (!date || ym(date) !== month) return;
       const name = String(expense.payee || 'その他');
       const amount = Number(expense.amount || 0);
-      if (amount) totals.set(name, (totals.get(name) || 0) + amount);
-    });
-    return orderedBreakdown(totals);
-  }
-
-  function billingBreakdown(month) {
-    const totals = new Map();
-    expenses.filter((expense) => !isPaid(expense)).forEach((expense) => {
-      const name = String(expense.payee || 'その他');
-      const amount = billingPartsOf(expense)
-        .filter((part) => part.date && ym(part.date) === month)
-        .reduce((sum, part) => sum + part.amount, 0);
-      if (amount) totals.set(name, (totals.get(name) || 0) + amount);
-    });
-    return orderedBreakdown(totals);
-  }
-
-  function orderedBreakdown(totals) {
-    const result = [];
-    const seen = new Set();
-    PAYEES.forEach((payee) => {
-      const amount = totals.get(payee.name) || 0;
       if (!amount) return;
-      result.push({ name: payee.name, amount });
-      seen.add(payee.name);
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push({ expense, index, date, amount });
     });
-    totals.forEach((amount, name) => {
-      if (!amount || seen.has(name)) return;
-      result.push({ name, amount });
+    return orderedNames(new Set(groups.keys())).map((name) => {
+      const rows = groups.get(name).sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index);
+      return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
     });
-    return result;
+  }
+
+  function billingGroups(month) {
+    const groups = new Map();
+    expenses.forEach((expense, index) => {
+      if (isPaid(expense)) return;
+      const name = String(expense.payee || 'その他');
+      billingPartsOf(expense).forEach((part, partIndex) => {
+        if (!part.date || ym(part.date) !== month || !part.amount) return;
+        if (!groups.has(name)) groups.set(name, []);
+        groups.get(name).push({ expense, index, partIndex, date: part.date, amount: Number(part.amount || 0) });
+      });
+    });
+    return orderedNames(new Set(groups.keys())).map((name) => {
+      const rows = groups.get(name).sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index || b.partIndex - a.partIndex);
+      return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
+    });
   }
 
   function ensureStyle() {
@@ -92,18 +91,21 @@
       .paymo-graph-detail-title{min-width:0;text-align:center;font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .paymo-graph-detail-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(28px + env(safe-area-inset-bottom));scrollbar-width:none}
       .paymo-graph-detail-body::-webkit-scrollbar{display:none}
-      .paymo-graph-detail-meta{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:14px}
-      .paymo-graph-detail-month{font-size:13px;font-weight:800;color:var(--muted)}
-      .paymo-graph-detail-total{font-size:25px;font-weight:950;letter-spacing:-.02em}
-      .paymo-graph-detail-count{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap}
-      .paymo-graph-detail-list{border-top:1px solid var(--line)}
-      .paymo-graph-detail-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid var(--line)}
-      .paymo-graph-detail-row-left{min-width:0;display:flex;flex-direction:column;gap:5px}
-      .paymo-graph-detail-date{font-size:12px;font-weight:700;color:var(--muted)}
-      .paymo-graph-detail-name{font-size:15px;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .paymo-graph-detail-name .dot{display:inline-block;margin-right:7px}
-      .paymo-graph-detail-amount{font-size:17px;font-weight:950;white-space:nowrap;text-align:right}
-      .paymo-graph-detail-paid{margin-top:2px;font-size:11px;font-weight:800;color:#22a559}
+      .paymo-graph-detail-summary{display:flex;align-items:baseline;gap:10px;margin-bottom:22px}
+      .paymo-graph-detail-month{font-size:18px;font-weight:900;white-space:nowrap}
+      .paymo-graph-detail-total{font-size:27px;font-weight:950;letter-spacing:-.02em}
+      .paymo-graph-detail-groups{display:flex;flex-direction:column;gap:24px}
+      .paymo-graph-detail-group{min-width:0}
+      .paymo-graph-detail-group-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+      .paymo-graph-detail-group-name{min-width:0;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .paymo-graph-detail-group-name .dot{display:inline-block;margin-right:7px}
+      .paymo-graph-detail-group-total{font-size:16px;font-weight:950;white-space:nowrap}
+      .paymo-graph-detail-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+      .paymo-graph-detail-row:last-child{border-bottom:0}
+      .paymo-graph-detail-row-left{min-width:0;display:flex;align-items:center;gap:8px}
+      .paymo-graph-detail-date{font-size:13px;font-weight:750;color:var(--muted);white-space:nowrap}
+      .paymo-graph-detail-paid{font-size:10px;font-weight:800;color:#22a559;white-space:nowrap}
+      .paymo-graph-detail-amount{font-size:15px;font-weight:900;white-space:nowrap;text-align:right}
       .paymo-graph-detail-empty{padding:26px 0;text-align:center;color:var(--muted);font-size:13px;font-weight:700}
       body.paymo-graph-detail-open{overflow:hidden!important}
     `;
@@ -125,11 +127,11 @@
         <div></div>
       </div>
       <div class="paymo-graph-detail-body">
-        <div class="paymo-graph-detail-meta">
-          <div><div id="paymoGraphDetailMonth" class="paymo-graph-detail-month"></div><div id="paymoGraphDetailTotal" class="paymo-graph-detail-total"></div></div>
-          <div id="paymoGraphDetailCount" class="paymo-graph-detail-count"></div>
+        <div class="paymo-graph-detail-summary">
+          <div id="paymoGraphDetailMonth" class="paymo-graph-detail-month"></div>
+          <div id="paymoGraphDetailTotal" class="paymo-graph-detail-total"></div>
         </div>
-        <div id="paymoGraphDetailRows" class="paymo-graph-detail-list"></div>
+        <div id="paymoGraphDetailGroups" class="paymo-graph-detail-groups"></div>
       </div>`;
     document.body.appendChild(page);
     page.querySelector('#paymoGraphDetailBack')?.addEventListener('click', closePage);
@@ -137,57 +139,44 @@
     return page;
   }
 
-  function filteredUsageRows(month, payee) {
-    return expenses
-      .map((expense, index) => ({ expense, index, date: usageDateOf(expense), amount: Number(expense.amount || 0) }))
-      .filter(({ expense, date }) => date && ym(date) === month && String(expense.payee || 'その他') === payee)
-      .sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index);
-  }
-
-  function filteredBillingRows(month, payee) {
-    const rows = [];
-    expenses.forEach((expense, index) => {
-      if (isPaid(expense) || String(expense.payee || 'その他') !== payee) return;
-      billingPartsOf(expense).forEach((part, partIndex) => {
-        if (!part.date || ym(part.date) !== month) return;
-        rows.push({ expense, index, partIndex, date: part.date, amount: Number(part.amount || 0) });
-      });
-    });
-    return rows.sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index || b.partIndex - a.partIndex);
-  }
-
-  function renderPage(month, payee, mode = 'usage') {
+  function renderPage(month, mode = 'usage') {
     const page = ensurePage();
-    const rows = mode === 'billing' ? filteredBillingRows(month, payee) : filteredUsageRows(month, payee);
-    const total = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    page.querySelector('#paymoGraphDetailTitle').textContent = payee;
-    page.querySelector('#paymoGraphDetailMonth').textContent = `${formatMonth(month)}の${mode === 'billing' ? '支払履歴' : '履歴'}`;
-    page.querySelector('#paymoGraphDetailTotal').textContent = yen(total);
-    page.querySelector('#paymoGraphDetailCount').textContent = `${rows.length}件`;
+    const groups = mode === 'billing' ? billingGroups(month) : usageGroups(month);
+    const total = groups.reduce((sum, group) => sum + group.total, 0);
 
-    const rowsEl = page.querySelector('#paymoGraphDetailRows');
-    if (!rows.length) {
-      rowsEl.innerHTML = '<div class="paymo-graph-detail-empty">該当する履歴はありません。</div>';
+    page.querySelector('#paymoGraphDetailTitle').textContent = mode === 'billing' ? '月別支払額' : '支出推移';
+    page.querySelector('#paymoGraphDetailMonth').textContent = shortMonth(month);
+    page.querySelector('#paymoGraphDetailTotal').textContent = yen(total);
+
+    const groupsEl = page.querySelector('#paymoGraphDetailGroups');
+    if (!groups.length) {
+      groupsEl.innerHTML = '<div class="paymo-graph-detail-empty">該当する履歴はありません。</div>';
       return page;
     }
 
-    rowsEl.innerHTML = rows.map(({ expense, date, amount }) => {
-      const paid = mode === 'usage' && isPaid(expense);
-      return `<div class="paymo-graph-detail-row">
-        <div class="paymo-graph-detail-row-left">
-          <div class="paymo-graph-detail-date">${escapeHtml(formatDate(date))}</div>
-          <div class="paymo-graph-detail-name"><i class="dot" style="background:${payeeColor(payee)}"></i>${escapeHtml(payee)}</div>
-          ${paid ? '<div class="paymo-graph-detail-paid">支払い済</div>' : ''}
+    groupsEl.innerHTML = groups.map((group) => `
+      <section class="paymo-graph-detail-group">
+        <div class="paymo-graph-detail-group-head">
+          <div class="paymo-graph-detail-group-name"><i class="dot" style="background:${payeeColor(group.name)}"></i>${escapeHtml(group.name)}</div>
+          <div class="paymo-graph-detail-group-total">${yen(group.total)}</div>
         </div>
-        <div class="paymo-graph-detail-amount">${yen(Number(amount || 0))}</div>
-      </div>`;
-    }).join('');
+        <div>
+          ${group.rows.map((row) => `
+            <div class="paymo-graph-detail-row">
+              <div class="paymo-graph-detail-row-left">
+                <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
+                ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
+              </div>
+              <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
+            </div>`).join('')}
+        </div>
+      </section>`).join('');
     return page;
   }
 
-  function openPage(month, payee, mode = 'usage') {
-    activeFilter = { month, payee, mode };
-    const page = renderPage(month, payee, mode);
+  function openPage(month, mode = 'usage') {
+    activeFilter = { month, mode };
+    const page = renderPage(month, mode);
     page.classList.add('is-visible');
     page.style.transition = 'none';
     page.style.transform = 'translate3d(100%,0,0)';
@@ -280,14 +269,10 @@
     const center = Math.floor(bars.length / 2);
     const month = monthKey(barIndex - center);
     const mode = chart.id === 'homeChart' ? 'billing' : 'usage';
-    const breakdown = mode === 'billing' ? billingBreakdown(month) : usageBreakdown(month);
-    const segmentIndex = Array.from(segment.parentElement?.querySelectorAll('.stack-segment') || []).indexOf(segment);
-    const item = breakdown[segmentIndex];
-    if (!item) return;
 
     event.preventDefault();
     event.stopPropagation();
-    openPage(month, item.name, mode);
+    openPage(month, mode);
   }
 
   document.addEventListener('click', chartClick, true);
@@ -296,7 +281,7 @@
   if (previousRender) {
     render = function (...args) {
       const result = previousRender(...args);
-      if (activeFilter) renderPage(activeFilter.month, activeFilter.payee, activeFilter.mode);
+      if (activeFilter) renderPage(activeFilter.month, activeFilter.mode);
       return result;
     };
   }
