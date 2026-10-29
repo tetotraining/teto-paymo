@@ -88,7 +88,7 @@
     if (!g.axis) {
       if (Math.max(Math.abs(dx),Math.abs(dy)) < 9) return;
       const interactive = g.at.closest('input,textarea,select,button,[contenteditable="true"]');
-      if (!interactive && dy > 0 && Math.abs(dy)>Math.abs(dx)*1.25 &&
+      if (dy > 0 && Math.abs(dy)>Math.abs(dx)*1.25 &&
           g.top<=2 && g.sheet.scrollTop<=2) g.axis='y';
       else if (!interactive && g.x<35 && dx>0 && dx>Math.abs(dy)*1.25) g.axis='x';
       else return;
