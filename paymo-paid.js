@@ -148,10 +148,10 @@
     style.textContent = `
       #expenseHistoryRows .history-entry.history-paid .history-amount{color:#22a559!important}
       .history-edit-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-      #historyEditSave{order:1;background:color-mix(in srgb,var(--accent) 18%,transparent)!important;color:var(--page-fg)!important;border:1px solid color-mix(in srgb,var(--accent) 38%,transparent)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 6%,transparent)!important}
+      #historyEditSave{order:1}
       #historyEditDelete{order:2}
       .history-edit-paid{order:3;grid-column:1/-1;border:1px solid rgba(34,165,89,.28);border-radius:17px;padding:15px;font-size:16px;font-weight:900;background:rgba(34,165,89,.14);color:#168a45;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-      .history-edit-paid.active{background:rgba(34,165,89,.24);color:#168a45;border-color:rgba(34,165,89,.42);box-shadow:inset 0 0 0 1px rgba(34,165,89,.08)}
+      .history-edit-paid.active{background:color-mix(in srgb,#E63946 12%,var(--surface))!important;color:#E63946!important;border:0!important;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none!important}
     `;
     document.head.appendChild(style);
   }
@@ -163,7 +163,7 @@
     const paid = Boolean(expense && isPaid(expense));
     button.classList.toggle('active', paid);
     button.setAttribute('aria-pressed', String(paid));
-    button.textContent = '支払い済';
+    button.textContent = paid ? '支払い済を取り消す' : '支払い済';
   }
 
   function ensurePaidButton() {
