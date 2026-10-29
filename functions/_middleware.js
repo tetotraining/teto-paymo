@@ -12,6 +12,7 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-items.js')) html = html.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
   if (!html.includes('/paymo-labels.js')) html = html.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
   if (!html.includes('/paymo-periods.js')) html = html.replace('</body>', '<script src="/paymo-periods.js"></script>\n</body>');
+  if (!html.includes('/paymo-graph-detail.js')) html = html.replace('</body>', '<script src="/paymo-graph-detail.js"></script>\n</body>');
   if (!html.includes('/paymo-history-payment.js')) html = html.replace('</body>', '<script src="/paymo-history-payment.js"></script>\n</body>');
   if (!html.includes('/paymo-installments.js')) html = html.replace('</body>', '<script src="/paymo-installments.js"></script>\n</body>');
   if (!html.includes('/paymo-installments-layout.js')) html = html.replace('</body>', '<script src="/paymo-installments-layout.js"></script>\n</body>');
