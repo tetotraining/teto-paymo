@@ -16,6 +16,7 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-history-api.js')) html = html.replace('</body>', '<script src="/paymo-history-api.js"></script>\n</body>');
   if (!html.includes('/paymo-history-edit.js')) html = html.replace('</body>', '<script src="/paymo-history-edit.js"></script>\n</body>');
   if (!html.includes('/paymo-ui-rules.js')) html = html.replace('</body>', '<script src="/paymo-ui-rules.js"></script>\n</body>');
+  if (!html.includes('/paymo-bulk-history-delete.js')) html = html.replace('</body>', '<script src="/paymo-bulk-history-delete.js"></script>\n</body>');
 
   const headers = new Headers(response.headers);
   headers.delete('content-length');
