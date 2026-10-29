@@ -101,20 +101,33 @@
     const grouped = new Map();
 
     unpaidExpenses().forEach((expense) => billingPartsOf(expense).forEach((part) => {
-      if (!validDate(part.date) || part.date < today) return;
+      if (!validDate(part.date)) return;
       const name = String(expense.payee || 'その他');
-      const key = `${part.date}\u0000${name}`;
+      const key = `${part.date}\\u0000${name}`;
       const current = grouped.get(key) || { name, date: part.date, amount: 0 };
       current.amount += part.amount;
       grouped.set(key, current);
     }));
 
-    const items = Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ja'));
-    if (!items.length) {
+    const allItems = Array.from(grouped.values());
+    const overdueItems = allItems
+      .filter((item) => item.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name, 'ja'))
+      .slice(0, 4);
+    const upcomingItems = allItems
+      .filter((item) => item.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ja'));
+
+    if (!overdueItems.length && !upcomingItems.length) {
       rows.innerHTML = '<div class="empty">支払予定はありません。</div>';
       return;
     }
-    rows.innerHTML = items.map((item) => `<div class="upcoming-payment-row"><div class="upcoming-payment-name"><i class="dot" style="background:${payeeColor(item.name)}"></i>${escapeHtml(item.name)}</div><div class="upcoming-payment-date">${escapeHtml(shortDate(item.date))}</div><div class="upcoming-payment-amount">${yen(item.amount)}</div></div>`).join('');
+
+    const renderRow = (item, overdue = false) => `<div class="upcoming-payment-row${overdue ? ' is-overdue' : ''}"><div class="upcoming-payment-name"><i class="dot" style="background:${payeeColor(item.name)}"></i><span>${escapeHtml(item.name)}</span></div><div class="upcoming-payment-date">${escapeHtml(shortDate(item.date))}</div><div class="upcoming-payment-amount">${yen(item.amount)}</div></div>`;
+    const overdueHtml = overdueItems.map((item) => renderRow(item, true)).join('');
+    const dividerHtml = overdueItems.length && upcomingItems.length ? '<div class="upcoming-payment-divider" aria-hidden="true"></div>' : '';
+    const upcomingHtml = upcomingItems.map((item) => renderRow(item)).join('');
+    rows.innerHTML = overdueHtml + dividerHtml + upcomingHtml;
   }
 
   function applyBillingState() {
