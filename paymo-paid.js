@@ -103,7 +103,7 @@
     unpaidExpenses().forEach((expense) => billingPartsOf(expense).forEach((part) => {
       if (!validDate(part.date)) return;
       const name = String(expense.payee || 'その他');
-      const key = `${part.date}\\u0000${name}`;
+      const key = `${part.date}\u0000${name}`;
       const current = grouped.get(key) || { name, date: part.date, amount: 0 };
       current.amount += part.amount;
       grouped.set(key, current);
