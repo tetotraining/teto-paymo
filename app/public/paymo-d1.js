@@ -1,6 +1,8 @@
 (() => {
   const API = '/api/expenses';
+  const BULK_DELETE_API = '/api/expenses/bulk-delete';
   const CLIENT_KEY_STORAGE = 'paymo-d1-client-key-v1';
+  const PENDING_DELETE_KEY = 'paymo-pending-delete-v1';
 
   function getClientKey() {
     let key = localStorage.getItem(CLIENT_KEY_STORAGE);
@@ -19,6 +21,15 @@
     return JSON.stringify(raw.slice(0, 3).map((part) => ({ date: String(part?.date || ''), amount: Number(part?.amount || 0) })));
   }
 
+  function readPendingDeletes() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PENDING_DELETE_KEY) || '[]');
+      return Array.isArray(raw) ? raw.map(String).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
   const clientKey = getClientKey();
 
   async function api(method = 'GET', body) {
@@ -35,20 +46,50 @@
     return response.json();
   }
 
+  async function bulkDelete(ids) {
+    const unique = Array.from(new Set((Array.isArray(ids) ? ids : []).map(String).filter(Boolean)));
+    if (!unique.length) return { ok: true, count: 0 };
+    const response = await fetch(BULK_DELETE_API, {
+      method: 'DELETE',
+      headers: {
+        'content-type': 'application/json',
+        'x-paymo-key': clientKey
+      },
+      body: JSON.stringify({ ids: unique }),
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error(`API ${response.status}`);
+    return response.json();
+  }
+
   window.paymoSyncExpenses = async (rows) => {
     const expensesToSync = Array.isArray(rows) ? rows.filter(Boolean) : [];
     if (!expensesToSync.length) return;
     return api('POST', { expenses: expensesToSync });
   };
 
+  window.paymoDeleteExpenses = async (ids) => bulkDelete(ids);
+
   async function syncFromD1() {
     try {
-      const local = JSON.parse(localStorage.getItem(KEY) || '[]');
+      const pendingIds = readPendingDeletes();
+      let pending = new Set(pendingIds);
+      if (pendingIds.length) {
+        try {
+          await bulkDelete(pendingIds);
+          localStorage.removeItem(PENDING_DELETE_KEY);
+          pending = new Set();
+        } catch {}
+      }
+
+      const local = JSON.parse(localStorage.getItem(KEY) || '[]')
+        .filter((item) => !pending.has(String(item?.id || '')));
       const data = await api('GET');
-      const remote = Array.isArray(data.expenses) ? data.expenses : [];
+      const remote = (Array.isArray(data.expenses) ? data.expenses : [])
+        .filter((item) => !pending.has(String(item?.id || '')));
       const remoteById = new Map(remote.map(item => [item.id, item]));
       const needsSync = local.filter(item => {
-        if (!item?.id) return false;
+        if (!item?.id || pending.has(String(item.id))) return false;
         const saved = remoteById.get(item.id);
         if (!saved) return true;
         const localUsage = item.usageDate || item.usage_date || item.date || '';
