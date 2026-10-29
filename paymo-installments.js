@@ -4,6 +4,30 @@
   const numberFromInput = (value) => Number(String(value || '').replace(/[^0-9]/g, ''));
   const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
 
+  function formatAmountValue(value) {
+    const digits = String(value || '').replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+    return digits ? Number(digits).toLocaleString('ja-JP') : '';
+  }
+
+  function formatAmountInput(input) {
+    if (!input) return;
+    const before = String(input.value || '');
+    const cursor = input.selectionStart ?? before.length;
+    const digitsBeforeCursor = before.slice(0, cursor).replace(/[^0-9]/g, '').length;
+    const formatted = formatAmountValue(before);
+    input.value = formatted;
+
+    if (document.activeElement === input && typeof input.setSelectionRange === 'function') {
+      let position = 0;
+      let seenDigits = 0;
+      while (position < formatted.length && seenDigits < digitsBeforeCursor) {
+        if (/\d/.test(formatted[position])) seenDigits += 1;
+        position += 1;
+      }
+      try { input.setSelectionRange(position, position); } catch {}
+    }
+  }
+
   function addMonthsClamped(value, offset) {
     const base = validDate(value) ? value : today();
     const [year, month, day] = base.split('-').map(Number);
@@ -114,13 +138,17 @@
     const amountFields = Array.from({ length: splitCount }, (_, index) => `
       <div class="installment-subfield">
         <span>${index + 1}回目の支払額</span>
-        <div class="amount installment-amount"><b>¥</b><input id="installmentAmount${index + 1}" inputmode="numeric" value="${parts[index] || ''}" /></div>
+        <div class="amount installment-amount"><b>¥</b><input id="installmentAmount${index + 1}" inputmode="numeric" value="${formatAmountValue(parts[index] || '')}" /></div>
       </div>`).join('');
 
     details.innerHTML = `
       <div class="field"><div class="${gridClass}">${dateFields}</div></div>
       <div class="field"><div class="${gridClass}">${amountFields}</div></div>
       <div id="installmentError" class="installment-error"></div>`;
+
+    details.querySelectorAll('.installment-amount input').forEach((input) => {
+      input.addEventListener('input', () => formatAmountInput(input));
+    });
   }
 
   function setSplitCount(count) {
@@ -134,7 +162,7 @@
     const parts = equalParts(total, splitCount);
     parts.forEach((part, index) => {
       const input = document.getElementById(`installmentAmount${index + 1}`);
-      if (input) input.value = part || '';
+      if (input) input.value = formatAmountValue(part || '');
     });
   }
 
@@ -221,7 +249,10 @@
 
   function init() {
     ensureUi();
-    $('amount')?.addEventListener('input', refreshAutoAmounts);
+    $('amount')?.addEventListener('input', () => {
+      formatAmountInput($('amount'));
+      refreshAutoAmounts();
+    });
     $('addBtn')?.addEventListener('click', () => requestAnimationFrame(resetUi));
     bindSave();
   }
