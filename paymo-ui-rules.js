@@ -52,14 +52,27 @@
       .toggle:checked{
         box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)!important;
       }
-      .installment-date{
+      .installment-date,
+      .sheet #installmentDetails input.installment-date.date-input{
+        -webkit-appearance:none!important;
+        appearance:none!important;
         background:var(--surface)!important;
+        background-color:var(--surface)!important;
         color:var(--page-fg)!important;
         -webkit-text-fill-color:var(--page-fg)!important;
         border-color:var(--theme-line)!important;
+        box-shadow:inset 0 0 0 1000px var(--surface)!important;
         color-scheme:dark;
       }
-      html[data-theme="light"] .installment-date{
+      .installment-date::-webkit-date-and-time-value,
+      .installment-date::-webkit-datetime-edit,
+      .installment-date::-webkit-datetime-edit-fields-wrapper{
+        background:transparent!important;
+        color:var(--page-fg)!important;
+        -webkit-text-fill-color:var(--page-fg)!important;
+      }
+      html[data-theme="light"] .installment-date,
+      html[data-theme="light"] .sheet #installmentDetails input.installment-date.date-input{
         color-scheme:light;
       }
     `;
