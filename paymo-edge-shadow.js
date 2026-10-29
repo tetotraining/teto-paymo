@@ -12,6 +12,9 @@
           background:none!important;
           box-shadow:none!important;
         }
+        .upcoming-payment-divider{
+          display:none!important;
+        }
       `;
       document.head.appendChild(style);
     }
