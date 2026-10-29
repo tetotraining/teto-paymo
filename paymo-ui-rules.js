@@ -52,6 +52,16 @@
       .toggle:checked{
         box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)!important;
       }
+      .installment-date{
+        background:var(--surface)!important;
+        color:var(--page-fg)!important;
+        border-color:var(--theme-line)!important;
+        -webkit-text-fill-color:var(--page-fg)!important;
+        color-scheme:dark;
+      }
+      html[data-theme="light"] .installment-date{
+        color-scheme:light;
+      }
     `;
     document.head.appendChild(style);
   }
