@@ -52,36 +52,11 @@
       .toggle:checked{
         box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)!important;
       }
-      .installment-details>.field:first-child .installment-grid,
-      .installment-details>.field:first-child .installment-grid.three{
-        grid-template-columns:1fr!important;
-        gap:17px!important;
-      }
-      .installment-details>.field:first-child .installment-subfield{
-        overflow:visible!important;
-      }
-      .installment-details>.field:first-child .installment-subfield>span{
-        font-size:13px!important;
-        letter-spacing:normal!important;
-        margin-bottom:7px!important;
-      }
       .installment-date{
-        width:100%!important;
-        min-width:0!important;
-        max-width:100%!important;
-        height:auto!important;
-        padding:13px!important;
-        margin:0!important;
-        border:1px solid var(--theme-line)!important;
-        border-radius:15px!important;
         background:var(--surface)!important;
         color:var(--page-fg)!important;
         -webkit-text-fill-color:var(--page-fg)!important;
-        font-size:16px!important;
-        letter-spacing:normal!important;
-        text-align:center!important;
-        box-sizing:border-box!important;
-        contain:none!important;
+        border-color:var(--theme-line)!important;
         color-scheme:dark;
       }
       html[data-theme="light"] .installment-date{
