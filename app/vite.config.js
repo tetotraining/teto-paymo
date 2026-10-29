@@ -8,6 +8,7 @@ export default defineConfig({
         let next=html;
         if (!next.includes('/paymo-mobile-ui.js')) next=next.replace('</head>', '<script src="/paymo-mobile-ui.js"></script>\n</head>');
         if (!next.includes('/paymo-main-swipe.js')) next=next.replace('</head>', '<script src="/paymo-main-swipe.js"></script>\n</head>');
+        if (!next.includes('/paymo-edge-shadow.js')) next=next.replace('</head>', '<script src="/paymo-edge-shadow.js"></script>\n</head>');
         if (!next.includes('/paymo-design.js')) next=next.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
         if (!next.includes('/paymo-items.js')) next=next.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
         if (!next.includes('/paymo-labels.js')) next=next.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
