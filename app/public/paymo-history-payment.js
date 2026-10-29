@@ -64,8 +64,8 @@
       if (!billing) {
         billing = document.createElement('div');
         billing.className = 'history-billing-date';
-        right.appendChild(billing);
       }
+      right.insertBefore(billing, amount || right.firstChild);
       billing.textContent = `請求日：${formatDate(billingDateOf(expense))}`;
     });
   }
