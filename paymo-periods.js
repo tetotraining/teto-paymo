@@ -45,7 +45,7 @@
     if (document.getElementById('paymo-stacked-home-chart-style')) return;
     const style = document.createElement('style');
     style.id = 'paymo-stacked-home-chart-style';
-    style.textContent = `#homeChart .stack-bar{width:100%;min-height:3px;border-radius:8px 8px 3px 3px;overflow:hidden;display:flex;flex-direction:column-reverse;background:transparent}#homeChart .stack-bar.empty{background:#111}#homeChart .stack-segment{width:100%;min-height:0;flex:none}`;
+    style.textContent = `#homeChart .stack-bar{width:100%;min-height:3px;border-radius:8px 8px 3px 3px;overflow:hidden;display:flex;flex-direction:column-reverse;background:transparent;padding:0!important}#homeChart .stack-bar.zero{background:#111;height:3px!important;min-height:3px!important}#homeChart .stack-segment{width:100%;min-height:0;flex:none}`;
     document.head.appendChild(style);
   }
 
@@ -53,9 +53,9 @@
     ensureStackedChartStyle();
     const months = offsets.map(monthKey), totals = months.map(billingTotalByMonth), max = Math.max(...totals, 1);
     el.innerHTML = months.map((month, index) => {
-      const total = totals[index], barHeight = Math.max(3, Math.round(total / max * 138));
+      const total = totals[index], barHeight = total ? Math.max(3, Math.round(total / max * 138)) : 3;
       const segments = total ? billingBreakdown(month).map((item) => `<div class="stack-segment" style="height:${(item.amount / total * 100).toFixed(4)}%;background:${item.color}"></div>`).join('') : '';
-      return `<div class="bar-wrap"><div class="bar-value">${total ? yen(total) : ''}</div><div class="stack-bar ${total ? '' : 'empty'}" style="height:${barHeight}px">${segments}</div><div class="bar-label">${monthLabel(month)}</div></div>`;
+      return `<div class="bar-wrap"><div class="bar-value">${total ? yen(total) : ''}</div><div class="stack-bar ${total ? '' : 'zero'}" style="height:${barHeight}px">${segments}</div><div class="bar-label">${monthLabel(month)}</div></div>`;
     }).join('');
   }
 
