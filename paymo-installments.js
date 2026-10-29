@@ -1,8 +1,10 @@
 (() => {
   let splitCount = 1;
+  let duplicateResolve = null;
 
   const numberFromInput = (value) => Number(String(value || '').replace(/[^0-9]/g, ''));
   const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+  const usageDateOf = (expense) => String(expense?.usageDate || expense?.usage_date || expense?.date || '');
 
   function formatAmountValue(value) {
     const digits = String(value || '').replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
@@ -64,8 +66,59 @@
       .installment-error.show{display:block;}
       .installment-date::-webkit-date-and-time-value{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;text-align:center!important;}
       .installment-date::-webkit-datetime-edit{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;}
+      .duplicate-warning-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.52);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+      .duplicate-warning-backdrop[hidden]{display:none!important;}
+      .duplicate-warning-card{width:min(100%,350px);background:var(--surface,#f7f7f5);color:var(--page-fg,#111);border:1px solid var(--theme-line,#d7d7d4);border-radius:24px;padding:22px;box-shadow:0 18px 55px rgba(0,0,0,.34);}
+      .duplicate-warning-title{font-size:20px;font-weight:900;margin:0 0 10px;}
+      .duplicate-warning-message{font-size:14px;font-weight:700;line-height:1.6;margin:0 0 20px;color:var(--page-fg,#111);}
+      .duplicate-warning-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+      .duplicate-warning-button{border:0;border-radius:15px;padding:13px 10px;font-weight:900;font-size:15px;}
+      .duplicate-warning-cancel{background:var(--page-bg,#e9e9e6);color:var(--page-fg,#111);border:1px solid var(--theme-line,#d7d7d4);}
+      .duplicate-warning-add{background:var(--accent,#111);color:var(--accent-ink,#fff);}
     `;
     document.head.appendChild(style);
+  }
+
+  function closeDuplicateWarning(result) {
+    const backdrop = document.getElementById('duplicateWarningBackdrop');
+    if (backdrop) backdrop.hidden = true;
+    const resolve = duplicateResolve;
+    duplicateResolve = null;
+    if (resolve) resolve(Boolean(result));
+  }
+
+  function ensureDuplicateUi() {
+    if (document.getElementById('duplicateWarningBackdrop')) return;
+    const backdrop = document.createElement('div');
+    backdrop.id = 'duplicateWarningBackdrop';
+    backdrop.className = 'duplicate-warning-backdrop';
+    backdrop.hidden = true;
+    backdrop.innerHTML = `
+      <section class="duplicate-warning-card" role="dialog" aria-modal="true" aria-labelledby="duplicateWarningTitle">
+        <h3 id="duplicateWarningTitle" class="duplicate-warning-title">確認</h3>
+        <p class="duplicate-warning-message">同じ記録があります。追加してよろしいですか？</p>
+        <div class="duplicate-warning-actions">
+          <button id="duplicateWarningCancel" type="button" class="duplicate-warning-button duplicate-warning-cancel">キャンセル</button>
+          <button id="duplicateWarningAdd" type="button" class="duplicate-warning-button duplicate-warning-add">追加</button>
+        </div>
+      </section>`;
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', (event) => {
+      if (event.target === backdrop) closeDuplicateWarning(false);
+    });
+    document.getElementById('duplicateWarningCancel').onclick = () => closeDuplicateWarning(false);
+    document.getElementById('duplicateWarningAdd').onclick = () => closeDuplicateWarning(true);
+  }
+
+  function confirmDuplicateWarning() {
+    ensureDuplicateUi();
+    const backdrop = document.getElementById('duplicateWarningBackdrop');
+    if (!backdrop) return Promise.resolve(false);
+    if (duplicateResolve) return Promise.resolve(false);
+    backdrop.hidden = false;
+    return new Promise((resolve) => {
+      duplicateResolve = resolve;
+    });
   }
 
   function ensureUi() {
@@ -101,6 +154,7 @@
     }
 
     ensureStyle();
+    ensureDuplicateUi();
   }
 
   function setSelectedButton() {
@@ -199,6 +253,9 @@
       details.hidden = true;
       details.innerHTML = '';
     }
+    const warning = document.getElementById('duplicateWarningBackdrop');
+    if (warning) warning.hidden = true;
+    duplicateResolve = null;
   }
 
   function bindSave() {
@@ -231,6 +288,14 @@
         splitCount,
         installments
       };
+
+      const duplicateExists = expenses.some((existing) =>
+        Number(existing?.amount || 0) === amount && usageDateOf(existing) === expense.usageDate
+      );
+      if (duplicateExists) {
+        const shouldAdd = await confirmDuplicateWarning();
+        if (!shouldAdd) return;
+      }
 
       expenses.push(expense);
       localStorage.setItem(KEY, JSON.stringify(expenses));
