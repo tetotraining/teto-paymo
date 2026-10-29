@@ -40,8 +40,8 @@
         <h3 id="historyDeleteConfirmTitle" class="history-delete-confirm-title">確認</h3>
         <p class="history-delete-confirm-message">この履歴を削除しますか？</p>
         <div class="history-delete-confirm-actions">
-          <button id="historyDeleteConfirmCancel" type="button" class="history-delete-confirm-button history-delete-confirm-cancel">キャンセル</button>
           <button id="historyDeleteConfirmDelete" type="button" class="history-delete-confirm-button history-delete-confirm-delete">削除</button>
+          <button id="historyDeleteConfirmCancel" type="button" class="history-delete-confirm-button history-delete-confirm-cancel">キャンセル</button>
         </div>
       </section>`;
     document.body.appendChild(backdrop);
