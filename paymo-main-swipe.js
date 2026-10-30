@@ -6,6 +6,7 @@
   let track = null;
   let pages = [];
   let resizeObserver = null;
+  let exitFade = null;
 
   function ensureStyle() {
     if (document.getElementById('paymo-main-swipe-style')) return;
@@ -34,10 +35,33 @@
         padding:0 16px;
         box-sizing:border-box;
         backface-visibility:hidden;
-        opacity:.16;
+        opacity:1;
         transition:opacity 260ms cubic-bezier(.22,.72,.24,1);
       }
       .paymo-main-track>.view.active{opacity:1}
+      .paymo-main-exit-fade{
+        position:absolute;
+        top:0;
+        bottom:0;
+        width:58px;
+        z-index:7;
+        pointer-events:none;
+        background:var(--bg,#000);
+        opacity:0;
+        transition:opacity 120ms linear;
+      }
+      .paymo-main-exit-fade.left{
+        left:0;
+        right:auto;
+        -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+        mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+      }
+      .paymo-main-exit-fade.right{
+        right:0;
+        left:auto;
+        -webkit-mask-image:linear-gradient(270deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+        mask-image:linear-gradient(270deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+      }
       .paymo-main-edge-shadow{
         position:absolute;
         top:0;
@@ -82,6 +106,13 @@
     return Math.max(1, viewport?.clientWidth || document.querySelector('.app')?.clientWidth || window.innerWidth || 1);
   }
 
+  function setExitFade(direction = 0, progress = 0) {
+    if (!exitFade) return;
+    exitFade.classList.toggle('left', direction < 0);
+    exitFade.classList.toggle('right', direction > 0);
+    exitFade.style.opacity = direction ? String(Math.min(1, Math.max(0, progress * 2.2))) : '0';
+  }
+
   function setViewportHeight(index = currentIndex) {
     if (!viewport || !pages[index]) return;
     const height = Math.ceil(pages[index].scrollHeight || pages[index].getBoundingClientRect().height || 0);
@@ -100,16 +131,18 @@
     });
   }
 
-  function snapTo(index, animate = true) {
+  function snapTo(index, animate = true, preserveExitFade = false) {
     if (!track) return;
     currentIndex = Math.max(0, Math.min(VIEW_ORDER.length - 1, index));
     track.style.transition = animate ? 'transform 260ms cubic-bezier(.22,.72,.24,1)' : 'none';
     track.style.transform = `translate3d(${-currentIndex * width()}px,0,0)`;
     setActiveClasses(currentIndex);
     setViewportHeight(currentIndex);
+    if (!preserveExitFade) setExitFade(0, 0);
     if (animate) {
       setTimeout(() => {
         if (track) track.style.transition = '';
+        setExitFade(0, 0);
       }, 280);
     } else {
       requestAnimationFrame(() => { if (track) track.style.transition = ''; });
@@ -139,6 +172,10 @@
     app.insertBefore(viewport, first);
     viewport.appendChild(track);
     pages.forEach((page) => track.appendChild(page));
+
+    exitFade = document.createElement('div');
+    exitFade.className = 'paymo-main-exit-fade';
+    viewport.appendChild(exitFade);
 
     const leftShadow = document.createElement('div');
     leftShadow.className = 'paymo-main-edge-shadow left';
@@ -224,7 +261,7 @@
 
     const targetIndex = dx < 0 ? Math.min(VIEW_ORDER.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
     pages.forEach((page, index) => {
-      if (index !== targetIndex && index !== currentIndex) page.style.opacity = '';
+      if (index !== targetIndex) page.style.opacity = '';
     });
     const currentHeight = pages[currentIndex]?.scrollHeight || 0;
     const targetHeight = pages[targetIndex]?.scrollHeight || 0;
@@ -234,9 +271,9 @@
     if (targetIndex !== currentIndex) {
       const progress = Math.min(1, ax / Math.max(1, w * .72));
       pages[targetIndex].style.opacity = String(.16 + progress * .84);
-      pages[currentIndex].style.opacity = String(1 - progress * .84);
+      setExitFade(dx < 0 ? -1 : 1, progress);
     } else {
-      pages[currentIndex].style.opacity = '';
+      setExitFade(0, 0);
     }
     if (event.cancelable) event.preventDefault();
   }, { passive:false });
@@ -254,7 +291,7 @@
     const fastEnough = direction === 1 ? g.velocityX < -.42 : g.velocityX > .42;
     const commit = valid && (distance >= Math.min(118, w * .26) || (distance >= 42 && fastEnough));
 
-    snapTo(commit ? candidate : currentIndex, true);
+    snapTo(commit ? candidate : currentIndex, true, commit);
   }, { passive:true });
 
   document.addEventListener('touchcancel', () => {
