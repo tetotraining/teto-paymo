@@ -32,12 +32,8 @@
     root.style.setProperty('--nav',theme.surface);
     root.style.setProperty('--accent',resolvedAccent(s.accent));
     root.style.setProperty('--accent-ink',accentInk(s.accent));
-    root.style.setProperty('color-scheme',s.dark?'dark':'light');
-    root.style.setProperty('background-color',theme.base,'important');
-    document.body?.style.setProperty('background-color',theme.base,'important');
-    document.querySelectorAll('.app,#paymoMainViewport,#paymoMainTrack').forEach(el=>{
-      el.style.setProperty('background-color',theme.base,'important');
-    });
+    root.style.backgroundColor=theme.base;
+    document.body.style.backgroundColor=theme.base;
     let meta=document.querySelector('meta[name="theme-color"]');
     if(!meta){
       meta=document.createElement('meta');
@@ -45,6 +41,13 @@
       document.head.appendChild(meta);
     }
     if(meta)meta.setAttribute('content',theme.base);
+    let statusBar=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if(!statusBar){
+      statusBar=document.createElement('meta');
+      statusBar.name='apple-mobile-web-app-status-bar-style';
+      document.head.appendChild(statusBar);
+    }
+    statusBar.setAttribute('content',s.dark?'black':'default');
   }
 
   function setupNav(){
@@ -58,7 +61,7 @@
     style.id='paymo-design-style';
     style.textContent=`
       :root{--page-bg:#050605;--page-fg:#f5f5f3;--surface:#101310;--theme-muted:#9ca198;--theme-line:#293029;--accent:#E085FF;--accent-ink:#071006}
-      html,body,.app,#paymoMainViewport,#paymoMainTrack{background:var(--page-bg)!important;color:var(--page-fg)!important}
+      html,body,.app{background:var(--page-bg)!important;color:var(--page-fg)!important}
       .app{padding-bottom:calc(120px + env(safe-area-inset-bottom))!important}
       .page-title,.design-title,.settings-label{color:var(--page-fg)!important}
       .card{background:var(--surface)!important;color:var(--page-fg)!important}
