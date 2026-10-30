@@ -24,10 +24,12 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-main-swipe.js')) html = html.replace('</head>', '<script src="/paymo-main-swipe.js"></script>\n</head>');
   if (!html.includes('/paymo-nav-scroll-top.js')) html = html.replace('</head>', '<script src="/paymo-nav-scroll-top.js"></script>\n</head>');
   if (!html.includes('/paymo-edge-shadow.js')) html = html.replace('</head>', '<script src="/paymo-edge-shadow.js"></script>\n</head>');
+  if (!html.includes('/paymo-auth.js')) html = html.replace('</body>', '<script src="/paymo-auth.js"></script>\n</body>');
   if (!html.includes('/paymo-d1.js')) html = html.replace('</body>', '<script src="/paymo-d1.js"></script>\n</body>');
   if (!html.includes('/paymo-design.js')) html = html.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
   if (!html.includes('/paymo-ios-theme-sync.js')) html = html.replace('</body>', '<script src="/paymo-ios-theme-sync.js"></script>\n</body>');
   if (!html.includes('/paymo-items.js')) html = html.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
+  if (!html.includes('/paymo-settings-watch.js')) html = html.replace('</body>', '<script src="/paymo-settings-watch.js"></script>\n</body>');
   if (!html.includes('/paymo-subpages.js')) html = html.replace('</body>', '<script src="/paymo-subpages.js"></script>\n</body>');
   if (!html.includes('/paymo-labels.js')) html = html.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
   if (!html.includes('/paymo-periods.js')) html = html.replace('</body>', '<script src="/paymo-periods.js"></script>\n</body>');
