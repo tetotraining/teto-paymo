@@ -1,6 +1,13 @@
 (() => {
   const MARKER_KEY = 'paymo_push_key_v1';
-  const DEFAULTS = { threeDaysTime: '09:00', oneDayTime: '09:00', sameDayTime: '09:00' };
+  const DEFAULTS = {
+    sameDayTime: '09:00',
+    oneDayTime: '09:00',
+    twoDaysTime: '09:00',
+    sameDayEnabled: true,
+    oneDayEnabled: true,
+    twoDaysEnabled: true
+  };
   let loading = false;
 
   const token = () => typeof window.paymoGetAuthToken === 'function' ? window.paymoGetAuthToken() : localStorage.getItem('paymo_token_v1') || '';
@@ -38,22 +45,43 @@
     const style = document.createElement('style');
     style.id = 'paymo-notification-style';
     style.textContent = `
-      #notificationSettings{padding-bottom:24px}
       .paymo-notification-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-      .paymo-notification-back{width:38px;height:38px;border:0;border-radius:50%;background:var(--page-bg)!important;color:var(--page-fg)!important;font-size:26px;line-height:1;display:grid;place-items:center}
+      .paymo-notification-back{width:38px;height:38px;border:0;border-radius:50%;background:transparent!important;color:var(--page-fg)!important;font-size:30px;line-height:1;display:grid;place-items:center;padding:0}
       .paymo-notification-title{margin:0;font-size:30px;font-weight:900;letter-spacing:-1px;color:var(--page-fg)!important}
       .paymo-notification-label{display:block;color:var(--theme-muted)!important;font-size:14px;font-weight:400;margin:18px 0 8px}
       .paymo-notification-card{background:var(--surface)!important;color:var(--page-fg)!important;border-radius:18px;overflow:hidden}
-      .paymo-notification-row{min-height:62px;padding:0 17px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid var(--theme-line)}
+      .paymo-notification-row{min-height:70px;padding:0 17px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--theme-line)}
       .paymo-notification-row:first-child{border-top:0}
-      .paymo-notification-row strong{font-size:17px;font-weight:600}
-      .paymo-notification-time{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--page-fg);font:inherit;font-size:17px;font-weight:700;text-align:right;min-width:94px;outline:none;color-scheme:dark}
+      .paymo-notification-row strong{font-size:17px;font-weight:650;white-space:nowrap}
+      .paymo-notification-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0}
+      .paymo-notification-time{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--page-fg);font:inherit;font-size:16px;font-weight:700;text-align:right;width:88px;outline:none;color-scheme:dark;transition:opacity .18s ease}
+      .paymo-notification-time:disabled{opacity:.32}
       html[data-theme="light"] .paymo-notification-time{color-scheme:light}
+      .paymo-switch{position:relative;display:inline-flex;width:50px;height:30px;flex:0 0 50px;cursor:pointer}
+      .paymo-switch input{position:absolute;opacity:0;pointer-events:none}
+      .paymo-switch-track{position:absolute;inset:0;border-radius:999px;background:var(--theme-line);transition:background .2s ease}
+      .paymo-switch-track::after{content:"";position:absolute;width:26px;height:26px;left:2px;top:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.28);transition:transform .2s cubic-bezier(.22,.72,.24,1)}
+      .paymo-switch input:checked + .paymo-switch-track{background:var(--accent)}
+      .paymo-switch input:checked + .paymo-switch-track::after{transform:translateX(20px)}
       .paymo-notification-save-status,.paymo-push-status{display:block;min-height:20px;margin:8px 3px 0;color:var(--theme-muted);font-size:12px;line-height:1.5}
       .paymo-push-button{width:100%;min-height:54px;border:0;border-radius:17px;background:var(--accent);color:var(--accent-ink);font-size:16px;font-weight:900;padding:0 16px}
       .paymo-push-button:disabled{opacity:.55}
     `;
     document.head.appendChild(style);
+  }
+
+  function notificationRow(label, timeId, toggleId) {
+    return `
+      <div class="paymo-notification-row">
+        <strong>${label}</strong>
+        <div class="paymo-notification-controls">
+          <input id="${timeId}" class="paymo-notification-time" type="time" value="09:00">
+          <label class="paymo-switch" aria-label="${label}の通知">
+            <input id="${toggleId}" type="checkbox" checked>
+            <span class="paymo-switch-track"></span>
+          </label>
+        </div>
+      </div>`;
   }
 
   function ensureView() {
@@ -64,18 +92,18 @@
     if (!app) return null;
     view = document.createElement('section');
     view.id = 'notificationSettings';
-    view.className = 'view';
+    view.className = 'view paymo-notification-view';
     view.setAttribute('data-no-page-swipe', '');
     view.innerHTML = `
       <div class="paymo-notification-head">
         <button id="paymoNotificationBack" class="paymo-notification-back" aria-label="戻る">‹</button>
         <h1 class="paymo-notification-title">通知設定</h1>
       </div>
-      <span class="paymo-notification-label">支払期日の通知時刻</span>
+      <span class="paymo-notification-label">支払期日の通知</span>
       <div class="paymo-notification-card">
-        <label class="paymo-notification-row"><strong>3日前</strong><input id="paymoThreeDaysTime" class="paymo-notification-time" type="time" value="09:00"></label>
-        <label class="paymo-notification-row"><strong>前日</strong><input id="paymoOneDayTime" class="paymo-notification-time" type="time" value="09:00"></label>
-        <label class="paymo-notification-row"><strong>当日</strong><input id="paymoSameDayTime" class="paymo-notification-time" type="time" value="09:00"></label>
+        ${notificationRow('当日', 'paymoSameDayTime', 'paymoSameDayEnabled')}
+        ${notificationRow('1日前', 'paymoOneDayTime', 'paymoOneDayEnabled')}
+        ${notificationRow('2日前', 'paymoTwoDaysTime', 'paymoTwoDaysEnabled')}
       </div>
       <small id="paymoNotificationSaveStatus" class="paymo-notification-save-status"></small>
       <span class="paymo-notification-label">iPhoneの通知</span>
@@ -84,27 +112,49 @@
     `;
     app.appendChild(view);
     document.getElementById('paymoNotificationBack').onclick = () => showView('menu');
-    ['paymoThreeDaysTime', 'paymoOneDayTime', 'paymoSameDayTime'].forEach((id) => {
-      document.getElementById(id).addEventListener('change', saveTimes);
+    ['paymoSameDayTime', 'paymoOneDayTime', 'paymoTwoDaysTime'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', saveSettings);
+    });
+    ['paymoSameDayEnabled', 'paymoOneDayEnabled', 'paymoTwoDaysEnabled'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => {
+        syncRowStates();
+        saveSettings();
+      });
     });
     document.getElementById('paymoEnablePush').onclick = enablePush;
+    syncRowStates();
     return view;
   }
 
-  function readTimes() {
+  function syncRowStates() {
+    const pairs = [
+      ['paymoSameDayEnabled', 'paymoSameDayTime'],
+      ['paymoOneDayEnabled', 'paymoOneDayTime'],
+      ['paymoTwoDaysEnabled', 'paymoTwoDaysTime']
+    ];
+    pairs.forEach(([toggleId, timeId]) => {
+      const toggle = document.getElementById(toggleId);
+      const time = document.getElementById(timeId);
+      if (toggle && time) time.disabled = !toggle.checked;
+    });
+  }
+
+  function readSettings() {
     return {
-      threeDaysTime: document.getElementById('paymoThreeDaysTime')?.value || DEFAULTS.threeDaysTime,
-      oneDayTime: document.getElementById('paymoOneDayTime')?.value || DEFAULTS.oneDayTime,
       sameDayTime: document.getElementById('paymoSameDayTime')?.value || DEFAULTS.sameDayTime,
-      enabled: true
+      oneDayTime: document.getElementById('paymoOneDayTime')?.value || DEFAULTS.oneDayTime,
+      twoDaysTime: document.getElementById('paymoTwoDaysTime')?.value || DEFAULTS.twoDaysTime,
+      sameDayEnabled: document.getElementById('paymoSameDayEnabled')?.checked !== false,
+      oneDayEnabled: document.getElementById('paymoOneDayEnabled')?.checked !== false,
+      twoDaysEnabled: document.getElementById('paymoTwoDaysEnabled')?.checked !== false
     };
   }
 
-  async function saveTimes() {
+  async function saveSettings() {
     const status = document.getElementById('paymoNotificationSaveStatus');
     if (status) status.textContent = '保存中…';
     try {
-      await api('notification-settings', readTimes());
+      await api('notification-settings', readSettings());
       if (status) status.textContent = '保存しました';
       setTimeout(() => { if (status?.textContent === '保存しました') status.textContent = ''; }, 1500);
     } catch (error) {
@@ -112,22 +162,32 @@
     }
   }
 
-  async function loadTimes() {
+  async function loadSettings() {
     if (loading) return;
     loading = true;
     const status = document.getElementById('paymoNotificationSaveStatus');
     try {
       const data = await api('notification-settings');
-      const settings = data.settings || DEFAULTS;
+      const settings = { ...DEFAULTS, ...(data.settings || {}) };
       const values = {
-        paymoThreeDaysTime: settings.threeDaysTime || DEFAULTS.threeDaysTime,
-        paymoOneDayTime: settings.oneDayTime || DEFAULTS.oneDayTime,
-        paymoSameDayTime: settings.sameDayTime || DEFAULTS.sameDayTime
+        paymoSameDayTime: settings.sameDayTime,
+        paymoOneDayTime: settings.oneDayTime,
+        paymoTwoDaysTime: settings.twoDaysTime
       };
       Object.entries(values).forEach(([id, value]) => {
         const input = document.getElementById(id);
         if (input) input.value = value;
       });
+      const toggles = {
+        paymoSameDayEnabled: settings.sameDayEnabled,
+        paymoOneDayEnabled: settings.oneDayEnabled,
+        paymoTwoDaysEnabled: settings.twoDaysEnabled
+      };
+      Object.entries(toggles).forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) input.checked = value !== false;
+      });
+      syncRowStates();
       if (status) status.textContent = '';
     } catch (error) {
       if (status) status.textContent = error.message;
@@ -215,7 +275,7 @@
   async function openSettings() {
     ensureView();
     showView('notificationSettings');
-    await loadTimes();
+    await loadSettings();
     await refreshPushStatus();
   }
 
