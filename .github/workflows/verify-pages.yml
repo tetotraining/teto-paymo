@@ -1,0 +1,27 @@
+name: Verify Paymo production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Cloudflare Pages is serving latest marker
+        shell: bash
+        run: |
+          set -e
+          expected='paymo-20261030-1804'
+          for i in $(seq 1 24); do
+            body="$(curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/deploy-marker.txt?ts=$(date +%s)" || true)"
+            echo "attempt=$i body=$body"
+            if [ "$body" = "$expected" ]; then
+              echo "Production is serving the latest Paymo deployment."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production did not serve the latest marker."
+          exit 1
