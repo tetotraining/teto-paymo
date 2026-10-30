@@ -224,7 +224,7 @@
 
     const targetIndex = dx < 0 ? Math.min(VIEW_ORDER.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
     pages.forEach((page, index) => {
-      if (index !== targetIndex) page.style.opacity = '';
+      if (index !== targetIndex && index !== currentIndex) page.style.opacity = '';
     });
     const currentHeight = pages[currentIndex]?.scrollHeight || 0;
     const targetHeight = pages[targetIndex]?.scrollHeight || 0;
@@ -234,6 +234,9 @@
     if (targetIndex !== currentIndex) {
       const progress = Math.min(1, ax / Math.max(1, w * .72));
       pages[targetIndex].style.opacity = String(.16 + progress * .84);
+      pages[currentIndex].style.opacity = String(1 - progress * .84);
+    } else {
+      pages[currentIndex].style.opacity = '';
     }
     if (event.cancelable) event.preventDefault();
   }, { passive:false });
