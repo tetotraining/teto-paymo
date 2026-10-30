@@ -23,6 +23,17 @@
     return `${Number(month)}/${Number(day)}`;
   }
 
+  function monthKeyOffset(offset) {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function monthLabel(key) {
+    const month = Number(String(key || '').split('-')[1] || 0);
+    return month ? `${month}月` : '';
+  }
+
   function payeeColor(name) {
     try {
       const saved = JSON.parse(localStorage.getItem('paymo_payees_v1') || '[]');
@@ -55,6 +66,10 @@
       .sort((a, b) => String(b.usageDate).localeCompare(String(a.usageDate)) || b.index - a.index);
   }
 
+  function monthTotal(rows, key) {
+    return rows.reduce((sum, row) => String(row.usageDate || '').slice(0, 7) === key ? sum + row.amount : sum, 0);
+  }
+
   function ensureStyle() {
     if (document.getElementById('paymo-category-detail-style')) return;
     const style = document.createElement('style');
@@ -67,6 +82,12 @@
       #paymoCategoryDetail .paymo-graph-detail-total{font-size:30px!important}
       #paymoCategoryDetail .paymo-graph-detail-group-name{font-size:20px!important}
       #paymoCategoryDetail .paymo-graph-detail-group-total{font-size:18px!important}
+      #paymoCategoryDetail .category-detail-summary-wrap{margin-bottom:22px}
+      #paymoCategoryDetail .category-detail-summary-wrap .paymo-graph-detail-summary{margin-bottom:5px}
+      #paymoCategoryDetail .category-detail-month-list{display:flex;flex-direction:column;gap:2px;margin-left:48px;color:var(--muted);opacity:.68;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+      #paymoCategoryDetail .category-detail-month-row{display:flex;align-items:center;gap:10px;min-height:17px}
+      #paymoCategoryDetail .category-detail-month-label{width:34px;flex:0 0 34px}
+      #paymoCategoryDetail .category-detail-month-amount{white-space:nowrap}
       #paymoCategoryDetail .paymo-graph-detail-columns,
       #paymoCategoryDetail .paymo-graph-detail-row{
         display:grid!important;
@@ -107,8 +128,21 @@
       #paymoCategoryDetail .paymo-graph-detail-amount-cell{min-width:0;text-align:right!important}
       #paymoCategoryDetail .paymo-graph-detail-amount{margin-left:0!important;font-size:17px!important;text-align:right!important}
       #paymoCategoryDetail .paymo-graph-detail-paid{display:none!important}
+      body.paymo-category-editor-open .history-edit-backdrop{z-index:560!important}
+      body.paymo-category-editor-open .history-edit-sheet{z-index:561!important}
     `;
     document.head.appendChild(style);
+  }
+
+  function bindEditorObserver() {
+    const sheet = document.getElementById('historyEditSheet');
+    if (!sheet || sheet.dataset.categoryDetailObserved === '1') return;
+    sheet.dataset.categoryDetailObserved = '1';
+    new MutationObserver(() => {
+      if (!sheet.hidden) return;
+      document.body.classList.remove('paymo-category-editor-open');
+      if (activeItem) renderPage(activeItem);
+    }).observe(sheet, { attributes:true, attributeFilter:['hidden'] });
   }
 
   function ensurePage() {
@@ -126,9 +160,12 @@
         <div></div>
       </div>
       <div class="paymo-graph-detail-body">
-        <div class="paymo-graph-detail-summary">
-          <div class="paymo-graph-detail-month">全期間</div>
-          <div id="paymoCategoryDetailTotal" class="paymo-graph-detail-total"></div>
+        <div class="category-detail-summary-wrap">
+          <div class="paymo-graph-detail-summary">
+            <div id="paymoCategoryDetailMonth" class="paymo-graph-detail-month"></div>
+            <div id="paymoCategoryDetailTotal" class="paymo-graph-detail-total"></div>
+          </div>
+          <div id="paymoCategoryDetailOtherMonths" class="category-detail-month-list"></div>
         </div>
         <div id="paymoCategoryDetailGroups" class="paymo-graph-detail-groups"></div>
       </div>`;
@@ -141,9 +178,20 @@
   function renderPage(name) {
     const page = ensurePage();
     const rows = itemRows(name);
-    const total = rows.reduce((sum, row) => sum + row.amount, 0);
+    const allTimeTotal = rows.reduce((sum, row) => sum + row.amount, 0);
+    const currentKey = monthKeyOffset(0);
+    const currentTotal = monthTotal(rows, currentKey);
+    const otherKeys = [monthKeyOffset(2), monthKeyOffset(1), monthKeyOffset(-1), monthKeyOffset(-2)];
+
     page.querySelector('#paymoCategoryDetailTitle').textContent = name;
-    page.querySelector('#paymoCategoryDetailTotal').textContent = yen(total);
+    page.querySelector('#paymoCategoryDetailMonth').textContent = monthLabel(currentKey);
+    page.querySelector('#paymoCategoryDetailTotal').textContent = yen(currentTotal);
+    page.querySelector('#paymoCategoryDetailOtherMonths').innerHTML = otherKeys.map((key) => `
+      <div class="category-detail-month-row">
+        <span class="category-detail-month-label">${escapeHtml(monthLabel(key))}</span>
+        <span class="category-detail-month-amount">${yen(monthTotal(rows, key))}</span>
+      </div>`).join('');
+
     const groups = page.querySelector('#paymoCategoryDetailGroups');
     if (!rows.length) {
       groups.innerHTML = '<div class="paymo-graph-detail-empty">該当する履歴はありません。</div>';
@@ -153,7 +201,7 @@
       <section class="paymo-graph-detail-group">
         <div class="paymo-graph-detail-group-head">
           <div class="paymo-graph-detail-group-name"><i class="dot" style="background:${escapeHtml(payeeColor(name))}"></i>${escapeHtml(name)}</div>
-          <div class="paymo-graph-detail-group-total">${yen(total)}</div>
+          <div class="paymo-graph-detail-group-total">${yen(allTimeTotal)}</div>
         </div>
         <div class="paymo-graph-detail-columns"><span>利用日</span><span>支払期日</span><span>金額</span></div>
         <div>
@@ -204,7 +252,7 @@
 
   function bindBackSwipe(page) {
     page.addEventListener('touchstart', (event) => {
-      if (event.touches.length !== 1) return;
+      if (event.touches.length !== 1 || document.body.classList.contains('paymo-category-editor-open')) return;
       const touch = event.touches[0];
       if (touch.clientX > 35) return;
       swipe = { startX: touch.clientX, startY: touch.clientY, lastX: touch.clientX, lastAt: performance.now(), distance: 0, velocityX: 0, engaged: false };
@@ -271,8 +319,9 @@
     if (!id || typeof window.paymoOpenHistoryEditor !== 'function') return;
     event.preventDefault();
     event.stopPropagation();
-    closePage();
-    setTimeout(() => window.paymoOpenHistoryEditor(id), 260);
+    document.body.classList.add('paymo-category-editor-open');
+    window.paymoOpenHistoryEditor(id);
+    bindEditorObserver();
   }, true);
 
   window.addEventListener('paymo-expenses-updated', () => {
