@@ -1,4 +1,4 @@
-name: Deploy Paymo to Cloudflare Pages
+name: Verify Paymo Cloudflare Pages
 
 on:
   workflow_dispatch:
@@ -6,22 +6,30 @@ on:
     branches: [main]
     paths:
       - 'index.html'
+      - 'app/**'
       - 'functions/**'
       - 'paymo-*.js'
+      - 'deploy-marker.txt'
       - '.github/workflows/deploy.yml'
 
 jobs:
-  deploy:
+  verify-production:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install Wrangler
-        run: npm install --no-save wrangler@latest
-      - name: Deploy production Pages
-        run: npx wrangler pages deploy . --project-name teto-paymo --branch main --commit-hash ${{ github.sha }} --commit-message "${{ github.event.head_commit.message || 'Deploy Paymo' }}"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify Cloudflare Pages production
+        shell: bash
+        run: |
+          set -e
+          expected='paymo-20261030-1804'
+          for i in $(seq 1 30); do
+            body="$(curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/deploy-marker.txt?ts=$(date +%s)" || true)"
+            echo "attempt=$i body=$body"
+            if [ "$body" = "$expected" ]; then
+              echo "Cloudflare Pages production is serving the latest Paymo deployment."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Cloudflare Pages production is not serving the latest Paymo deployment."
+          exit 1
