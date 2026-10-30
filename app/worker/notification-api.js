@@ -3,9 +3,9 @@ import { buildPushPayload } from '@block65/webcrypto-web-push';
 const encoder = new TextEncoder();
 const ALLOWED_ORIGIN = 'https://teto-paymo.pages.dev';
 const DEFAULT_TIMES = {
-  threeDaysTime: '09:00',
+  sameDayTime: '09:00',
   oneDayTime: '09:00',
-  sameDayTime: '09:00'
+  twoDaysTime: '09:00'
 };
 
 function corsHeaders(request) {
@@ -63,11 +63,13 @@ function toMinutes(value) {
 async function ensureSettings(db, userId) {
   await db.prepare(
     `INSERT OR IGNORE INTO payment_notification_settings
-      (user_id,three_days_time,one_day_time,same_day_time,enabled,updated_at)
-     VALUES(?,?,?,?,1,?)`
-  ).bind(userId, DEFAULT_TIMES.threeDaysTime, DEFAULT_TIMES.oneDayTime, DEFAULT_TIMES.sameDayTime, Date.now()).run();
+      (user_id,one_day_time,same_day_time,enabled,updated_at)
+     VALUES(?,?,?,1,?)`
+  ).bind(userId, DEFAULT_TIMES.oneDayTime, DEFAULT_TIMES.sameDayTime, Date.now()).run();
   return db.prepare(
-    'SELECT three_days_time,one_day_time,same_day_time,enabled FROM payment_notification_settings WHERE user_id=?'
+    `SELECT two_days_time,one_day_time,same_day_time,
+            two_days_enabled,one_day_enabled,same_day_enabled,enabled
+     FROM payment_notification_settings WHERE user_id=?`
   ).bind(userId).first();
 }
 
@@ -122,10 +124,12 @@ export async function handleNotificationFetch(request, env, url) {
     const row = await ensureSettings(env.DB, user.id);
     return json(request, {
       settings: {
-        threeDaysTime: row?.three_days_time || DEFAULT_TIMES.threeDaysTime,
-        oneDayTime: row?.one_day_time || DEFAULT_TIMES.oneDayTime,
         sameDayTime: row?.same_day_time || DEFAULT_TIMES.sameDayTime,
-        enabled: row?.enabled !== 0
+        oneDayTime: row?.one_day_time || DEFAULT_TIMES.oneDayTime,
+        twoDaysTime: row?.two_days_time || DEFAULT_TIMES.twoDaysTime,
+        sameDayEnabled: row?.same_day_enabled !== 0,
+        oneDayEnabled: row?.one_day_enabled !== 0,
+        twoDaysEnabled: row?.two_days_enabled !== 0
       }
     });
   }
@@ -133,25 +137,49 @@ export async function handleNotificationFetch(request, env, url) {
   if (url.pathname === '/api/notification-settings' && request.method === 'POST') {
     let body;
     try { body = await request.json(); } catch { return json(request, { error: 'invalid json' }, 400); }
-    const threeDaysTime = String(body?.threeDaysTime || '');
-    const oneDayTime = String(body?.oneDayTime || '');
     const sameDayTime = String(body?.sameDayTime || '');
-    if (![threeDaysTime, oneDayTime, sameDayTime].every(validTime)) {
+    const oneDayTime = String(body?.oneDayTime || '');
+    const twoDaysTime = String(body?.twoDaysTime || '');
+    if (![sameDayTime, oneDayTime, twoDaysTime].every(validTime)) {
       return json(request, { error: '通知時刻が不正です' }, 400);
     }
-    const enabled = body?.enabled === false ? 0 : 1;
+    const sameDayEnabled = body?.sameDayEnabled === false ? 0 : 1;
+    const oneDayEnabled = body?.oneDayEnabled === false ? 0 : 1;
+    const twoDaysEnabled = body?.twoDaysEnabled === false ? 0 : 1;
     await env.DB.prepare(
       `INSERT INTO payment_notification_settings
-        (user_id,three_days_time,one_day_time,same_day_time,enabled,updated_at)
-       VALUES(?,?,?,?,?,?)
+        (user_id,two_days_time,one_day_time,same_day_time,two_days_enabled,one_day_enabled,same_day_enabled,enabled,updated_at)
+       VALUES(?,?,?,?,?,?,?,1,?)
        ON CONFLICT(user_id) DO UPDATE SET
-         three_days_time=excluded.three_days_time,
+         two_days_time=excluded.two_days_time,
          one_day_time=excluded.one_day_time,
          same_day_time=excluded.same_day_time,
-         enabled=excluded.enabled,
+         two_days_enabled=excluded.two_days_enabled,
+         one_day_enabled=excluded.one_day_enabled,
+         same_day_enabled=excluded.same_day_enabled,
+         enabled=1,
          updated_at=excluded.updated_at`
-    ).bind(user.id, threeDaysTime, oneDayTime, sameDayTime, enabled, Date.now()).run();
-    return json(request, { ok: true, settings: { threeDaysTime, oneDayTime, sameDayTime, enabled: Boolean(enabled) } });
+    ).bind(
+      user.id,
+      twoDaysTime,
+      oneDayTime,
+      sameDayTime,
+      twoDaysEnabled,
+      oneDayEnabled,
+      sameDayEnabled,
+      Date.now()
+    ).run();
+    return json(request, {
+      ok: true,
+      settings: {
+        sameDayTime,
+        oneDayTime,
+        twoDaysTime,
+        sameDayEnabled: Boolean(sameDayEnabled),
+        oneDayEnabled: Boolean(oneDayEnabled),
+        twoDaysEnabled: Boolean(twoDaysEnabled)
+      }
+    });
   }
 
   return json(request, { error: 'not found' }, 404);
@@ -225,7 +253,7 @@ async function sendPush(env, userId, message, vapidPublicKey) {
 }
 
 function titleFor(daysBefore) {
-  if (daysBefore === 3) return '支払期日の3日前です';
+  if (daysBefore === 2) return '支払期日の2日前です';
   if (daysBefore === 1) return '支払期日は明日です';
   return '支払期日当日です';
 }
@@ -237,7 +265,9 @@ export async function runPaymentNotificationSchedule(env) {
 
   const now = jstNow();
   const settingsResult = await env.DB.prepare(
-    'SELECT user_id,three_days_time,one_day_time,same_day_time FROM payment_notification_settings WHERE enabled=1'
+    `SELECT user_id,two_days_time,one_day_time,same_day_time,
+            two_days_enabled,one_day_enabled,same_day_enabled
+     FROM payment_notification_settings WHERE enabled=1`
   ).all();
 
   for (const setting of settingsResult.results || []) {
@@ -250,13 +280,13 @@ export async function runPaymentNotificationSchedule(env) {
     const expenses = expenseResult.results || [];
 
     const schedules = [
-      { daysBefore: 3, time: setting.three_days_time || DEFAULT_TIMES.threeDaysTime },
-      { daysBefore: 1, time: setting.one_day_time || DEFAULT_TIMES.oneDayTime },
-      { daysBefore: 0, time: setting.same_day_time || DEFAULT_TIMES.sameDayTime }
+      { daysBefore: 0, time: setting.same_day_time || DEFAULT_TIMES.sameDayTime, enabled: setting.same_day_enabled !== 0 },
+      { daysBefore: 1, time: setting.one_day_time || DEFAULT_TIMES.oneDayTime, enabled: setting.one_day_enabled !== 0 },
+      { daysBefore: 2, time: setting.two_days_time || DEFAULT_TIMES.twoDaysTime, enabled: setting.two_days_enabled !== 0 }
     ];
 
     for (const schedule of schedules) {
-      if (!validTime(schedule.time) || now.minutes < toMinutes(schedule.time)) continue;
+      if (!schedule.enabled || !validTime(schedule.time) || now.minutes < toMinutes(schedule.time)) continue;
       const dueDate = addDays(now.date, schedule.daysBefore);
       const deliveredResult = await env.DB.prepare(
         'SELECT expense_id,installment_index FROM payment_notification_deliveries WHERE user_id=? AND due_date=? AND days_before=?'
