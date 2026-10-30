@@ -55,6 +55,10 @@
       html[data-theme="light"] .sheet #installmentDetails input.installment-date.date-input{
         color-scheme:light;
       }
+      #upcomingPaymentRows .upcoming-payment-row{
+        border-top:0!important;
+        border-bottom:1px solid var(--line)!important;
+      }
     `;
     document.head.appendChild(style);
   }
