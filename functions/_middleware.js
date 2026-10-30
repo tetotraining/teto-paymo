@@ -5,20 +5,17 @@ export async function onRequest(context) {
 
   let html = await response.text();
 
-  // iOS home-screen apps only let the page paint behind the status bar when
-  // black-translucent is used. Keep this static, then let --page-bg switch
-  // between light/dark without reloading the app.
+  // Match LISTell's iOS status-bar behavior exactly.
+  // The status-bar style stays black; light/dark switching is handled by
+  // html/body background + the theme-color meta in paymo-design.js.
   html = html.replace(
     /<meta name="apple-mobile-web-app-status-bar-style" content="[^"]*" \/>/,
-    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black" />'
   );
   html = html.replace(
     /document\.querySelector\('meta\[name="apple-mobile-web-app-status-bar-style"\]'\)\.content=isDark\?'black':'default';/g,
-    'document.querySelector(\'meta[name="apple-mobile-web-app-status-bar-style"]\').content=\'black-translucent\';'
+    'document.querySelector(\'meta[name="apple-mobile-web-app-status-bar-style"]\').content=\'black\';'
   );
-
-  const statusSafeAreaStyle = `<style id="paymo-status-safe-area-style">html,body{background:var(--page-bg,#050605)!important}body::before{content:"";position:fixed;z-index:99990;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--page-bg,#050605);pointer-events:none;transition:background-color .18s ease}</style>`;
-  if (!html.includes('paymo-status-safe-area-style')) html = html.replace('</head>', `${statusSafeAreaStyle}\n</head>`);
 
   const splashStyle = `<link rel="preload" href="/paymo-icon-192-v2.png" as="image" type="image/png" />\n<style id="paymo-launch-splash-style">#paymoLaunchSplash{position:fixed;z-index:99999;inset:0;width:100vw;height:100dvh;background:#000;opacity:1}#paymoLaunchSplash img{position:absolute;display:block;width:min(30vw,150px);height:auto;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity 1s ease}#paymoLaunchSplash img.fade-in{opacity:1}#paymoLaunchSplash img.fade-away{opacity:0}</style>`;
   const splashMarkup = `<div id="paymoLaunchSplash"><img id="paymoLaunchSplashImg" src="/paymo-icon-192-v2.png" alt="" width="150" height="150"></div>`;
