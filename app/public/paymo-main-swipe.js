@@ -43,24 +43,24 @@
         position:absolute;
         top:0;
         bottom:0;
-        width:58px;
+        width:120px;
         z-index:7;
         pointer-events:none;
         background:var(--bg,#000);
         opacity:0;
-        transition:opacity 120ms linear;
+        transition:opacity 90ms linear;
       }
       .paymo-main-exit-fade.left{
         left:0;
         right:auto;
-        -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
-        mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+        -webkit-mask-image:linear-gradient(90deg,#000 0%,transparent 100%);
+        mask-image:linear-gradient(90deg,#000 0%,transparent 100%);
       }
       .paymo-main-exit-fade.right{
         right:0;
         left:auto;
-        -webkit-mask-image:linear-gradient(270deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
-        mask-image:linear-gradient(270deg,#000 0%,rgba(0,0,0,.72) 34%,rgba(0,0,0,.24) 70%,transparent 100%);
+        -webkit-mask-image:linear-gradient(270deg,#000 0%,transparent 100%);
+        mask-image:linear-gradient(270deg,#000 0%,transparent 100%);
       }
       .paymo-main-edge-shadow{
         position:absolute;
@@ -110,7 +110,7 @@
     if (!exitFade) return;
     exitFade.classList.toggle('left', direction < 0);
     exitFade.classList.toggle('right', direction > 0);
-    exitFade.style.opacity = direction ? String(Math.min(1, Math.max(0, progress * 2.2))) : '0';
+    exitFade.style.opacity = direction ? String(Math.min(1, Math.max(0, progress))) : '0';
   }
 
   function setViewportHeight(index = currentIndex) {
