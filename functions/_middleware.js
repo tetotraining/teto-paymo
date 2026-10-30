@@ -5,6 +5,11 @@ export async function onRequest(context) {
 
   let html = await response.text();
 
+  html = html.replace(
+    'function monthKey(offset=0){const d=new Date();d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,\'0\')}`}',
+    'function monthKey(offset=0){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,\'0\')}`}'
+  );
+
   const shelfIcon = `<svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="20" width="9" height="28" rx="1.5"/><path d="M10 27h9"/><rect x="23" y="13" width="9" height="35" rx="1.5"/><path d="M23 21h9"/><rect x="36" y="23" width="8" height="25" rx="1.5"/><path d="M36 30h8"/><rect x="48" y="17" width="8" height="31" rx="1.5"/><path d="M48 24h8"/><path d="M8 52h48v5H8z"/><path d="M13 57v3M51 57v3"/></g></svg>`;
   html = html.replace(/<section id="notify" class="view">[\s\S]*?<\/section>/, '<section id="categorySpend" class="view"><h1 class="page-title">項目別履歴</h1><div id="categorySpendRows" class="category-history-sections"></div></section>');
   html = html.replace(/<button class="nav-btn" data-view="notify" aria-label="通知">[\s\S]*?<\/button>/, `<button class="nav-btn" data-view="categorySpend" aria-label="項目別履歴">${shelfIcon}</button>`);
