@@ -40,6 +40,23 @@
     document.getElementById(id)?.classList.add('active');
   }
 
+  function normalizeHour(value, fallback = '09:00') {
+    const match = String(value || '').match(/^(\d{1,2}):/);
+    if (!match) return fallback;
+    const hour = Number(match[1]);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return fallback;
+    return `${String(hour).padStart(2, '0')}:00`;
+  }
+
+  function hourOptions() {
+    return Array.from({ length: 24 }, (_, index) => {
+      const displayHour = index + 1;
+      const value = displayHour === 24 ? '00:00' : `${String(displayHour).padStart(2, '0')}:00`;
+      const label = displayHour === 24 ? '24時（0時）' : `${displayHour}時`;
+      return `<option value="${value}">${label}</option>`;
+    }).join('');
+  }
+
   function injectStyle() {
     if (document.getElementById('paymo-notification-style')) return;
     const style = document.createElement('style');
@@ -54,9 +71,9 @@
       .paymo-notification-row:first-child{border-top:0}
       .paymo-notification-row strong{font-size:17px;font-weight:650;white-space:nowrap}
       .paymo-notification-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;min-width:0}
-      .paymo-notification-time{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--page-fg);font:inherit;font-size:16px;font-weight:700;text-align:right;width:88px;outline:none;color-scheme:dark;transition:opacity .18s ease}
-      .paymo-notification-time:disabled{opacity:.32}
-      html[data-theme="light"] .paymo-notification-time{color-scheme:light}
+      .paymo-notification-time{appearance:auto;-webkit-appearance:menulist;border:1px solid var(--theme-line);border-radius:10px;background:rgba(127,127,127,.08);color:var(--page-fg);font:inherit;font-size:16px;font-weight:700;text-align:center;min-width:104px;height:40px;padding:0 8px;outline:none;color-scheme:dark;transition:opacity .18s ease,background .18s ease}
+      .paymo-notification-time:disabled{opacity:.3;background:rgba(127,127,127,.04)}
+      html[data-theme="light"] .paymo-notification-time{color-scheme:light;background:rgba(0,0,0,.035)}
       .paymo-switch{position:relative;display:inline-flex;width:50px;height:30px;flex:0 0 50px;cursor:pointer}
       .paymo-switch input{position:absolute;opacity:0;pointer-events:none}
       .paymo-switch-track{position:absolute;inset:0;border-radius:999px;background:var(--theme-line);transition:background .2s ease}
@@ -75,7 +92,7 @@
       <div class="paymo-notification-row">
         <strong>${label}</strong>
         <div class="paymo-notification-controls">
-          <input id="${timeId}" class="paymo-notification-time" type="time" value="09:00">
+          <select id="${timeId}" class="paymo-notification-time" aria-label="${label}の通知時刻">${hourOptions()}</select>
           <label class="paymo-switch" aria-label="${label}の通知">
             <input id="${toggleId}" type="checkbox" checked>
             <span class="paymo-switch-track"></span>
@@ -99,6 +116,9 @@
         <button id="paymoNotificationBack" class="paymo-notification-back" aria-label="戻る">‹</button>
         <h1 class="paymo-notification-title">通知設定</h1>
       </div>
+      <span class="paymo-notification-label">iPhoneの通知</span>
+      <button id="paymoEnablePush" class="paymo-push-button" type="button">通知を有効にする</button>
+      <small id="paymoPushStatus" class="paymo-push-status"></small>
       <span class="paymo-notification-label">支払期日の通知</span>
       <div class="paymo-notification-card">
         ${notificationRow('当日', 'paymoSameDayTime', 'paymoSameDayEnabled')}
@@ -106,9 +126,6 @@
         ${notificationRow('2日前', 'paymoTwoDaysTime', 'paymoTwoDaysEnabled')}
       </div>
       <small id="paymoNotificationSaveStatus" class="paymo-notification-save-status"></small>
-      <span class="paymo-notification-label">iPhoneの通知</span>
-      <button id="paymoEnablePush" class="paymo-push-button" type="button">通知を有効にする</button>
-      <small id="paymoPushStatus" class="paymo-push-status"></small>
     `;
     app.appendChild(view);
     document.getElementById('paymoNotificationBack').onclick = () => showView('menu');
@@ -141,9 +158,9 @@
 
   function readSettings() {
     return {
-      sameDayTime: document.getElementById('paymoSameDayTime')?.value || DEFAULTS.sameDayTime,
-      oneDayTime: document.getElementById('paymoOneDayTime')?.value || DEFAULTS.oneDayTime,
-      twoDaysTime: document.getElementById('paymoTwoDaysTime')?.value || DEFAULTS.twoDaysTime,
+      sameDayTime: normalizeHour(document.getElementById('paymoSameDayTime')?.value, DEFAULTS.sameDayTime),
+      oneDayTime: normalizeHour(document.getElementById('paymoOneDayTime')?.value, DEFAULTS.oneDayTime),
+      twoDaysTime: normalizeHour(document.getElementById('paymoTwoDaysTime')?.value, DEFAULTS.twoDaysTime),
       sameDayEnabled: document.getElementById('paymoSameDayEnabled')?.checked !== false,
       oneDayEnabled: document.getElementById('paymoOneDayEnabled')?.checked !== false,
       twoDaysEnabled: document.getElementById('paymoTwoDaysEnabled')?.checked !== false
@@ -170,9 +187,9 @@
       const data = await api('notification-settings');
       const settings = { ...DEFAULTS, ...(data.settings || {}) };
       const values = {
-        paymoSameDayTime: settings.sameDayTime,
-        paymoOneDayTime: settings.oneDayTime,
-        paymoTwoDaysTime: settings.twoDaysTime
+        paymoSameDayTime: normalizeHour(settings.sameDayTime, DEFAULTS.sameDayTime),
+        paymoOneDayTime: normalizeHour(settings.oneDayTime, DEFAULTS.oneDayTime),
+        paymoTwoDaysTime: normalizeHour(settings.twoDaysTime, DEFAULTS.twoDaysTime)
       };
       Object.entries(values).forEach(([id, value]) => {
         const input = document.getElementById(id);
