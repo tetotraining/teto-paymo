@@ -8,13 +8,21 @@
     root.style.backgroundColor = bg;
     if (document.body) document.body.style.backgroundColor = bg;
 
-    let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      document.head.appendChild(meta);
+    let themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta');
+      themeMeta.name = 'theme-color';
+      document.head.appendChild(themeMeta);
     }
-    meta.setAttribute('content', bg);
+    themeMeta.setAttribute('content', bg);
+
+    let statusMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!statusMeta) {
+      statusMeta = document.createElement('meta');
+      statusMeta.name = 'apple-mobile-web-app-status-bar-style';
+      document.head.appendChild(statusMeta);
+    }
+    statusMeta.setAttribute('content', 'black');
   }
 
   document.addEventListener('change', (event) => {
