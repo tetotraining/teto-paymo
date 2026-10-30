@@ -1,27 +1,13 @@
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
-  status,
-  headers: {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store'
-  }
-});
-
-function getOwnerKey(request) {
-  const key = request.headers.get('x-paymo-key') || '';
-  return /^[A-Za-z0-9_-]{24,128}$/.test(key) ? key : null;
-}
+import { getUser, json } from '../../_utils/auth.js';
 
 export async function onRequestDelete(context) {
-  const ownerKey = getOwnerKey(context.request);
-  if (!ownerKey) return json({ error: 'unauthorized' }, 401);
   if (!context.env.DB) return json({ error: 'D1 binding DB is not configured' }, 503);
+  const user = await getUser(context.request, context.env.DB);
+  if (!user) return json({ error: '未ログインです' }, 401);
 
   let body;
-  try {
-    body = await context.request.json();
-  } catch {
-    return json({ error: 'invalid json' }, 400);
-  }
+  try { body = await context.request.json(); }
+  catch { return json({ error: 'invalid json' }, 400); }
 
   const ids = Array.from(new Set(
     (Array.isArray(body?.ids) ? body.ids : [])
@@ -35,9 +21,11 @@ export async function onRequestDelete(context) {
   try {
     for (let start = 0; start < ids.length; start += 100) {
       const chunk = ids.slice(start, start + 100);
-      const statements = chunk.map((id) => context.env.DB.prepare(
-        'DELETE FROM expenses WHERE owner_key = ? AND id = ?'
-      ).bind(ownerKey, id));
+      const statements = [];
+      chunk.forEach((id) => {
+        statements.push(context.env.DB.prepare('DELETE FROM expense_status WHERE owner_key=? AND id=?').bind(user.id, id));
+        statements.push(context.env.DB.prepare('DELETE FROM expenses WHERE owner_key=? AND id=?').bind(user.id, id));
+      });
       await context.env.DB.batch(statements);
     }
     return json({ ok: true, count: ids.length });
