@@ -6,7 +6,7 @@
   const dateOf=e=>String(e?.usage_date||e?.usageDate||e?.date||'').slice(0,10);
   const payeeOf=e=>String(e?.payee||e?.item||e?.name||'その他');
   const amountOf=e=>Number(e?.amount||0);
-  const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const escapeHtml=value=>String(value??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
   const formatDate=value=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return '日付なし';const [y,m,d]=value.split('-');return `${y}/${Number(m)}/${Number(d)}`};
 
   function source(){
@@ -87,7 +87,7 @@
         .category-history-row:first-child{border-top:0}
         .category-history-date{font-size:14px;font-weight:700;color:var(--theme-muted,#9ca198)}
         .category-history-amount{font-size:18px;font-weight:900;white-space:nowrap}
-        .category-history-peek{height:29px;overflow:hidden;opacity:.34;pointer-events:none}
+        .category-history-peek{height:42px;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%)}
         .category-history-peek .category-history-row{height:58px;border-top:1px solid var(--theme-line,#293029)}
         .category-history-empty,.category-spend-empty{padding:18px 0 8px;color:var(--theme-muted,#777);text-align:center;font-size:13px}
         #categorySpend.active~#home,#categorySpend.active+#home{display:none!important}
