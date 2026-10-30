@@ -20,7 +20,7 @@
     #paymoGraphDetail .paymo-graph-detail-amount-cell,
     #paymoGraphDetail .paymo-graph-detail-columns span:last-child{text-align:right!important}
     #paymoGraphDetail .paymo-graph-detail-amount{font-size:17px!important}
-    #paymoGraphDetail .paymo-graph-detail-paid{font-size:11px!important}
+    #paymoGraphDetail .paymo-graph-detail-paid{display:none!important}
   `;
   document.head.appendChild(style);
 
