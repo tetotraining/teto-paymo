@@ -53,8 +53,12 @@ jobs:
                 && [ "$actual_category" = "$expected_category" ] \
                 && grep -q '/paymo-ios-theme-sync.js' /tmp/paymo-index.html \
                 && grep -q '/paymo-category-spend.js' /tmp/paymo-index.html \
+                && grep -q 'data-view="categorySpend"' /tmp/paymo-index.html \
+                && grep -q 'id="categorySpend"' /tmp/paymo-index.html \
+                && ! grep -q 'data-view="notify"' /tmp/paymo-index.html \
+                && ! grep -q 'id="notify"' /tmp/paymo-index.html \
                 && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches the latest Paymo code, including the refined shelf and three-bar graph navigation icons."
+                echo "Cloudflare Pages production matches main and the former notification slot is now the bookshelf item-history view."
                 exit 0
               fi
             fi
