@@ -38,6 +38,7 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-graph-detail-edit.js')) html = html.replace('</body>', '<script src="/paymo-graph-detail-edit.js"></script>\n</body>');
   if (!html.includes('/paymo-graph-detail-size.js')) html = html.replace('</body>', '<script src="/paymo-graph-detail-size.js"></script>\n</body>');
   if (!html.includes('/paymo-category-spend.js')) html = html.replace('</body>', '<script src="/paymo-category-spend.js"></script>\n</body>');
+  if (!html.includes('/paymo-category-detail.js')) html = html.replace('</body>', '<script src="/paymo-category-detail.js"></script>\n</body>');
 
   const headers = new Headers(response.headers);
   headers.delete('content-length');
