@@ -117,7 +117,7 @@
   }
 
   function formatHistoryDate(value) { if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return '日付なし'; const [year, month, day] = value.split('-'); return `${year}/${Number(month)}/${Number(day)}`; }
-  function recentHistoryMonths() { return new Set([-2, -1, 0, 1, 2].map(monthKey)); }
+  function recentHistoryMonths() { const oldest = monthKey(-2); return { has: (month) => String(month || '') >= oldest }; }
 
   function ensureHistoryCard() {
     const graphCard = $('graphChart')?.closest('.card'); if (!graphCard) return null;
