@@ -4,9 +4,10 @@
   const $=id=>document.getElementById(id);
   const yen=n=>'¥'+Number(n||0).toLocaleString('ja-JP');
   const dateOf=e=>String(e?.usage_date||e?.usageDate||e?.date||'').slice(0,10);
+  const billingDateOf=e=>String(e?.date||'').slice(0,10);
   const payeeOf=e=>String(e?.payee||e?.item||e?.name||'その他');
   const amountOf=e=>Number(e?.amount||0);
-  const escapeHtml=value=>String(value??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
+  const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const formatDate=value=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return '日付なし';const [y,m,d]=value.split('-');return `${y}/${Number(m)}/${Number(d)}`};
 
   function source(){
@@ -35,7 +36,10 @@
   }
 
   function historyRow(item){
-    return `<div class="category-history-row"><span class="category-history-date">${escapeHtml(formatDate(item.date))}</span><b class="category-history-amount">${yen(amountOf(item.expense))}</b></div>`;
+    const id=escapeHtml(item.expense?.id??'');
+    const usage=formatDate(item.date);
+    const billing=formatDate(billingDateOf(item.expense));
+    return `<button type="button" class="category-history-row" data-expense-id="${id}"><span class="category-history-dates"><span>利用日：${escapeHtml(usage)}</span><span>請求日：${escapeHtml(billing)}</span></span><b class="category-history-amount">${yen(amountOf(item.expense))}</b></button>`;
   }
 
   function render(){
@@ -51,6 +55,8 @@
     }).join('');
   }
 
+  window.paymoRenderCategoryHistory=render;
+
   function showCategorySpend(button){
     document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
     if(button)button.classList.add('active');
@@ -61,6 +67,18 @@
     if(home)home.classList.remove('active');
     render();
     window.scrollTo(0,0);
+  }
+
+  function bindHistoryEditing(){
+    const root=$('categorySpendRows');
+    if(!root||root.dataset.editBound==='1')return;
+    root.dataset.editBound='1';
+    root.addEventListener('click',event=>{
+      const row=event.target?.closest?.('.category-history-row[data-expense-id]');
+      if(!row||row.closest('.category-history-peek'))return;
+      const id=row.dataset.expenseId;
+      if(id&&typeof window.paymoOpenHistoryEditor==='function')window.paymoOpenHistoryEditor(id);
+    });
   }
 
   function setup(){
@@ -83,12 +101,14 @@
         .category-history-title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .category-history-dot{width:11px;height:11px;border-radius:50%;flex:0 0 11px}
         .category-history-list{overflow:hidden}
-        .category-history-row{height:58px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--theme-line,#293029)}
+        .category-history-row{-webkit-appearance:none;appearance:none;width:100%;height:66px;padding:0;border:0;border-top:1px solid var(--theme-line,#293029);background:transparent;color:inherit;font:inherit;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
         .category-history-row:first-child{border-top:0}
-        .category-history-date{font-size:14px;font-weight:700;color:var(--theme-muted,#9ca198)}
+        .category-history-row:active{opacity:.58}
+        .category-history-dates{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;font-weight:700;line-height:1.25;color:var(--theme-muted,#9ca198)}
+        .category-history-dates span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .category-history-amount{font-size:18px;font-weight:900;white-space:nowrap}
-        .category-history-peek{height:42px;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%)}
-        .category-history-peek .category-history-row{height:58px;border-top:1px solid var(--theme-line,#293029)}
+        .category-history-peek{height:46px;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%)}
+        .category-history-peek .category-history-row{height:66px;border-top:1px solid var(--theme-line,#293029)}
         .category-history-empty,.category-spend-empty{padding:18px 0 8px;color:var(--theme-muted,#777);text-align:center;font-size:13px}
         #categorySpend.active~#home,#categorySpend.active+#home{display:none!important}
       `;document.head.appendChild(style)
@@ -100,6 +120,7 @@
         showCategorySpend(notify);
       };
     }
+    bindHistoryEditing();
     render();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
