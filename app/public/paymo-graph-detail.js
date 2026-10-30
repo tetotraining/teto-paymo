@@ -100,12 +100,11 @@
       .paymo-graph-detail-group-name{min-width:0;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .paymo-graph-detail-group-name .dot{display:inline-block;margin-right:7px}
       .paymo-graph-detail-group-total{font-size:16px;font-weight:950;white-space:nowrap}
-      .paymo-graph-detail-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+      .paymo-graph-detail-row{display:flex;align-items:center;justify-content:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
       .paymo-graph-detail-row:last-child{border-bottom:0}
-      .paymo-graph-detail-row-left{min-width:0;display:flex;align-items:center;gap:8px}
-      .paymo-graph-detail-date{font-size:13px;font-weight:750;color:var(--muted);white-space:nowrap}
+      .paymo-graph-detail-date{width:42px;flex:0 0 42px;font-size:13px;font-weight:750;color:var(--muted);white-space:nowrap}
       .paymo-graph-detail-paid{font-size:10px;font-weight:800;color:#22a559;white-space:nowrap}
-      .paymo-graph-detail-amount{font-size:15px;font-weight:900;white-space:nowrap;text-align:right}
+      .paymo-graph-detail-amount{font-size:15px;font-weight:900;white-space:nowrap;text-align:left}
       .paymo-graph-detail-empty{padding:26px 0;text-align:center;color:var(--muted);font-size:13px;font-weight:700}
       body.paymo-graph-detail-open{overflow:hidden!important}
     `;
@@ -163,11 +162,9 @@
         <div>
           ${group.rows.map((row) => `
             <div class="paymo-graph-detail-row">
-              <div class="paymo-graph-detail-row-left">
-                <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
-                ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
-              </div>
+              <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
               <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
+              ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
             </div>`).join('')}
         </div>
       </section>`).join('');
