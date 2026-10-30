@@ -24,16 +24,20 @@ jobs:
           expected="$(sha256sum paymo-design.js | awk '{print $1}')"
           echo "expected=$expected"
           for i in $(seq 1 30); do
-            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$(date +%s)" -o /tmp/paymo-design.js || true
-            if [ -s /tmp/paymo-design.js ]; then
+            ts=$(date +%s)
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$ts" -o /tmp/paymo-design.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
+            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-index.html ]; then
               actual="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
               echo "attempt=$i actual=$actual"
-              if [ "$actual" = "$expected" ]; then
-                echo "Cloudflare Pages production matches the latest Paymo design code."
+              if [ "$actual" = "$expected" ] \
+                && grep -q 'paymo-status-safe-area-style' /tmp/paymo-index.html \
+                && grep -q 'apple-mobile-web-app-status-bar-style" content="black-translucent' /tmp/paymo-index.html; then
+                echo "Cloudflare Pages production matches latest Paymo code and iOS top safe-area theme sync is live."
                 exit 0
               fi
             fi
             sleep 5
           done
-          echo "Cloudflare Pages production does not match the latest Paymo design code."
+          echo "Cloudflare Pages production has not picked up the latest Paymo deployment."
           exit 1
