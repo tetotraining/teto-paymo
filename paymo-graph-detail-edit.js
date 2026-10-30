@@ -47,6 +47,7 @@
         -webkit-tap-highlight-color:transparent;
       }
       #paymoGraphDetail .paymo-graph-detail-row:active{opacity:.62}
+      #paymoGraphDetail .paymo-graph-detail-row.is-paid .paymo-graph-detail-amount{color:#22a559!important}
       #paymoGraphDetail .paymo-graph-detail-date,
       #paymoGraphDetail .paymo-graph-detail-due,
       #paymoGraphDetail .paymo-graph-detail-amount{
@@ -141,6 +142,7 @@
         if (!item) return;
         const id = item.expense?.id;
         if (id !== undefined && id !== null) row.dataset.expenseId = String(id);
+        row.classList.toggle('is-paid', isPaid(item.expense));
         row.innerHTML = `
           <span class="paymo-graph-detail-date">${escapeHtml(shortDate(item.usageDate))}</span>
           <span class="paymo-graph-detail-due">${escapeHtml(shortDate(item.dueDate))}</span>
