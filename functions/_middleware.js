@@ -5,18 +5,6 @@ export async function onRequest(context) {
 
   let html = await response.text();
 
-  // Match LISTell's iOS status-bar behavior exactly.
-  // The status-bar style stays black; light/dark switching is handled by
-  // html/body background + the theme-color meta in paymo-design.js.
-  html = html.replace(
-    /<meta name="apple-mobile-web-app-status-bar-style" content="[^"]*" \/>/,
-    '<meta name="apple-mobile-web-app-status-bar-style" content="black" />'
-  );
-  html = html.replace(
-    /document\.querySelector\('meta\[name="apple-mobile-web-app-status-bar-style"\]'\)\.content=isDark\?'black':'default';/g,
-    'document.querySelector(\'meta[name="apple-mobile-web-app-status-bar-style"]\').content=\'black\';'
-  );
-
   const splashStyle = `<link rel="preload" href="/paymo-icon-192-v2.png" as="image" type="image/png" />\n<style id="paymo-launch-splash-style">#paymoLaunchSplash{position:fixed;z-index:99999;inset:0;width:100vw;height:100dvh;background:#000;opacity:1}#paymoLaunchSplash img{position:absolute;display:block;width:min(30vw,150px);height:auto;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity 1s ease}#paymoLaunchSplash img.fade-in{opacity:1}#paymoLaunchSplash img.fade-away{opacity:0}</style>`;
   const splashMarkup = `<div id="paymoLaunchSplash"><img id="paymoLaunchSplashImg" src="/paymo-icon-192-v2.png" alt="" width="150" height="150"></div>`;
   const splashScript = `<script id="paymo-launch-splash-script">(()=>{const splash=document.getElementById('paymoLaunchSplash');const img=document.getElementById('paymoLaunchSplashImg');if(!splash||!img)return;let started=false;const start=()=>{if(started)return;started=true;setTimeout(()=>img.classList.add('fade-in'),1000);setTimeout(()=>{img.classList.remove('fade-in');img.classList.add('fade-away')},4000);setTimeout(()=>splash.remove(),5000)};if(img.complete)start();else{img.addEventListener('load',start,{once:true});img.addEventListener('error',start,{once:true})}})();</script>`;
@@ -28,6 +16,7 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-edge-shadow.js')) html = html.replace('</head>', '<script src="/paymo-edge-shadow.js"></script>\n</head>');
   if (!html.includes('/paymo-d1.js')) html = html.replace('</body>', '<script src="/paymo-d1.js"></script>\n</body>');
   if (!html.includes('/paymo-design.js')) html = html.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
+  if (!html.includes('/paymo-ios-theme-sync.js')) html = html.replace('</body>', '<script src="/paymo-ios-theme-sync.js"></script>\n</body>');
   if (!html.includes('/paymo-items.js')) html = html.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
   if (!html.includes('/paymo-subpages.js')) html = html.replace('</body>', '<script src="/paymo-subpages.js"></script>\n</body>');
   if (!html.includes('/paymo-labels.js')) html = html.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
