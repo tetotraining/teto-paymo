@@ -26,11 +26,13 @@ jobs:
           expected_history="$(sha256sum paymo-history-edit.js | awk '{print $1}')"
           expected_periods="$(sha256sum paymo-periods.js | awk '{print $1}')"
           expected_category="$(sha256sum paymo-category-spend.js | awk '{print $1}')"
+          expected_swipe="$(sha256sum paymo-main-swipe.js | awk '{print $1}')"
           echo "expected_design=$expected_design"
           echo "expected_ios=$expected_ios"
           echo "expected_history=$expected_history"
           echo "expected_periods=$expected_periods"
           echo "expected_category=$expected_category"
+          echo "expected_swipe=$expected_swipe"
           for i in $(seq 1 30); do
             ts=$(date +%s)
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$ts" -o /tmp/paymo-design.js || true
@@ -38,19 +40,23 @@ jobs:
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-history-edit.js?ts=$ts" -o /tmp/paymo-history-edit.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-periods.js?ts=$ts" -o /tmp/paymo-periods.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-category-spend.js?ts=$ts" -o /tmp/paymo-category-spend.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-main-swipe.js?ts=$ts" -o /tmp/paymo-main-swipe.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
-            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-periods.js ] && [ -s /tmp/paymo-category-spend.js ] && [ -s /tmp/paymo-index.html ]; then
+            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-periods.js ] && [ -s /tmp/paymo-category-spend.js ] && [ -s /tmp/paymo-main-swipe.js ] && [ -s /tmp/paymo-index.html ]; then
               actual_design="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
               actual_ios="$(sha256sum /tmp/paymo-ios-theme-sync.js | awk '{print $1}')"
               actual_history="$(sha256sum /tmp/paymo-history-edit.js | awk '{print $1}')"
               actual_periods="$(sha256sum /tmp/paymo-periods.js | awk '{print $1}')"
               actual_category="$(sha256sum /tmp/paymo-category-spend.js | awk '{print $1}')"
-              echo "attempt=$i design=$actual_design ios=$actual_ios history=$actual_history periods=$actual_periods category=$actual_category"
+              actual_swipe="$(sha256sum /tmp/paymo-main-swipe.js | awk '{print $1}')"
+              echo "attempt=$i design=$actual_design ios=$actual_ios history=$actual_history periods=$actual_periods category=$actual_category swipe=$actual_swipe"
               if [ "$actual_design" = "$expected_design" ] \
                 && [ "$actual_ios" = "$expected_ios" ] \
                 && [ "$actual_history" = "$expected_history" ] \
                 && [ "$actual_periods" = "$expected_periods" ] \
                 && [ "$actual_category" = "$expected_category" ] \
+                && [ "$actual_swipe" = "$expected_swipe" ] \
+                && grep -q "'home', 'graph', 'categorySpend', 'menu'" /tmp/paymo-main-swipe.js \
                 && grep -q '/paymo-ios-theme-sync.js' /tmp/paymo-index.html \
                 && grep -q '/paymo-category-spend.js' /tmp/paymo-index.html \
                 && grep -q 'data-view="categorySpend"' /tmp/paymo-index.html \
@@ -58,7 +64,7 @@ jobs:
                 && ! grep -q 'data-view="notify"' /tmp/paymo-index.html \
                 && ! grep -q 'id="notify"' /tmp/paymo-index.html \
                 && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches main and the former notification slot is now the bookshelf item-history view."
+                echo "Cloudflare Pages production matches main, with swipe navigation restored across Home, Graph, bookshelf history, and Menu."
                 exit 0
               fi
             fi
