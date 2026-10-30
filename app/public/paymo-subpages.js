@@ -5,7 +5,8 @@
   style.id = 'paymo-subpages-style';
   style.textContent = `
     #design.design-view,
-    #itemRegistration.item-register-view{
+    #itemRegistration.item-register-view,
+    #notificationSettings.paymo-notification-view{
       position:fixed!important;
       inset:0!important;
       width:min(100%,430px)!important;
@@ -29,18 +30,22 @@
       will-change:transform;
     }
     #design.design-view::-webkit-scrollbar,
-    #itemRegistration.item-register-view::-webkit-scrollbar{display:none;width:0;height:0}
+    #itemRegistration.item-register-view::-webkit-scrollbar,
+    #notificationSettings.paymo-notification-view::-webkit-scrollbar{display:none;width:0;height:0}
     #design.design-view.active,
-    #itemRegistration.item-register-view.active{
+    #itemRegistration.item-register-view.active,
+    #notificationSettings.paymo-notification-view.active{
       visibility:visible;
       pointer-events:auto;
       transform:translate3d(0,0,0);
       transition:transform 260ms cubic-bezier(.22,.72,.24,1),visibility 0s;
     }
     body:has(#design.active),
-    body:has(#itemRegistration.active){overflow:hidden!important}
+    body:has(#itemRegistration.active),
+    body:has(#notificationSettings.active){overflow:hidden!important}
     body:has(#design.active) .bottom-nav,
-    body:has(#itemRegistration.active) .bottom-nav{
+    body:has(#itemRegistration.active) .bottom-nav,
+    body:has(#notificationSettings.active) .bottom-nav{
       visibility:hidden!important;
       pointer-events:none!important;
     }
