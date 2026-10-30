@@ -27,9 +27,11 @@
       #paymoGraphDetail .paymo-graph-detail-columns,
       #paymoGraphDetail .paymo-graph-detail-row{
         display:grid!important;
-        grid-template-columns:minmax(76px,1fr) minmax(76px,1fr) auto;
+        grid-template-columns:minmax(0,1fr) 92px 112px;
         align-items:center;
         column-gap:12px;
+        width:100%;
+        box-sizing:border-box;
       }
       #paymoGraphDetail .paymo-graph-detail-columns{
         padding:8px 0 4px;
@@ -37,6 +39,7 @@
         font-size:11px;
         font-weight:800;
       }
+      #paymoGraphDetail .paymo-graph-detail-columns span:first-child{text-align:left}
       #paymoGraphDetail .paymo-graph-detail-columns span:nth-child(2){text-align:center}
       #paymoGraphDetail .paymo-graph-detail-columns span:last-child{text-align:right}
       #paymoGraphDetail .paymo-graph-detail-row{
@@ -45,6 +48,12 @@
       }
       #paymoGraphDetail .paymo-graph-detail-row:active{opacity:.62}
       #paymoGraphDetail .paymo-graph-detail-date,
+      #paymoGraphDetail .paymo-graph-detail-due,
+      #paymoGraphDetail .paymo-graph-detail-amount{
+        font-variant-numeric:tabular-nums;
+        font-feature-settings:"tnum" 1;
+      }
+      #paymoGraphDetail .paymo-graph-detail-date,
       #paymoGraphDetail .paymo-graph-detail-due{
         width:auto!important;
         flex:0 0 auto!important;
@@ -52,7 +61,7 @@
         white-space:nowrap;
       }
       #paymoGraphDetail .paymo-graph-detail-due{text-align:center;color:var(--text,#fff);font-weight:850}
-      #paymoGraphDetail .paymo-graph-detail-date{color:var(--muted);font-weight:750}
+      #paymoGraphDetail .paymo-graph-detail-date{text-align:left;color:var(--muted);font-weight:750}
       #paymoGraphDetail .paymo-graph-detail-amount-cell{min-width:0;text-align:right}
       #paymoGraphDetail .paymo-graph-detail-amount{
         margin-left:0!important;
