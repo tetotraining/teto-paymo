@@ -34,7 +34,10 @@
         padding:0 16px;
         box-sizing:border-box;
         backface-visibility:hidden;
+        opacity:.16;
+        transition:opacity 260ms cubic-bezier(.22,.72,.24,1);
       }
+      .paymo-main-track>.view.active{opacity:1}
       .paymo-main-edge-shadow{
         position:absolute;
         top:0;
@@ -60,6 +63,8 @@
   function hasBlockingLayer() {
     const selectors = [
       '#backdrop',
+      '#sheet',
+      '#historyEditSheet',
       '#historyEditBackdrop',
       '#bulkHistoryFlowShade',
       '#historyDeleteConfirmBackdrop',
@@ -85,7 +90,10 @@
 
   function setActiveClasses(index) {
     const id = VIEW_ORDER[index];
-    pages.forEach((page, i) => page.classList.toggle('active', i === index));
+    pages.forEach((page, i) => {
+      page.style.opacity = '';
+      page.classList.toggle('active', i === index);
+    });
     document.querySelectorAll('.nav-btn').forEach((button) => {
       if (!button.dataset.view) return;
       button.classList.toggle('active', button.dataset.view === id);
@@ -215,11 +223,18 @@
     }
 
     const targetIndex = dx < 0 ? Math.min(VIEW_ORDER.length - 1, currentIndex + 1) : Math.max(0, currentIndex - 1);
+    pages.forEach((page, index) => {
+      if (index !== targetIndex) page.style.opacity = '';
+    });
     const currentHeight = pages[currentIndex]?.scrollHeight || 0;
     const targetHeight = pages[targetIndex]?.scrollHeight || 0;
     if (viewport && targetIndex !== currentIndex) viewport.style.height = `${Math.max(currentHeight, targetHeight)}px`;
 
     track.style.transform = `translate3d(${base + dragX}px,0,0)`;
+    if (targetIndex !== currentIndex) {
+      const progress = Math.min(1, ax / Math.max(1, w * .72));
+      pages[targetIndex].style.opacity = String(.16 + progress * .84);
+    }
     if (event.cancelable) event.preventDefault();
   }, { passive:false });
 
