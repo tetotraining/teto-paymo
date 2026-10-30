@@ -1,4 +1,5 @@
 import base from './account-api.js';
+import { handleNotificationFetch, runPaymentNotificationSchedule } from './notification-api.js';
 
 const encoder = new TextEncoder();
 const b64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -33,6 +34,9 @@ async function deleteAccount(request, env) {
 
   const userId = user.id;
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM payment_notification_deliveries WHERE user_id=?').bind(userId),
+    env.DB.prepare('DELETE FROM payment_notification_settings WHERE user_id=?').bind(userId),
+    env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM expense_status WHERE owner_key=?').bind(userId),
     env.DB.prepare('DELETE FROM expenses WHERE owner_key=?').bind(userId),
     env.DB.prepare('DELETE FROM account_settings WHERE user_id=?').bind(userId),
@@ -46,6 +50,14 @@ async function deleteAccount(request, env) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    try {
+      const notificationResponse = await handleNotificationFetch(request, env, url);
+      if (notificationResponse) return notificationResponse;
+    } catch (error) {
+      console.error('Paymo notification API error', error);
+      return json({ error: '通知設定を処理できませんでした' }, 500);
+    }
+
     if (request.method === 'DELETE' && url.pathname === '/api/account') {
       try {
         return await deleteAccount(request, env);
@@ -55,5 +67,11 @@ export default {
       }
     }
     return base.fetch(request, env, ctx);
+  },
+
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runPaymentNotificationSchedule(env).catch((error) => {
+      console.error('Paymo scheduled notification error', error);
+    }));
   }
 };
