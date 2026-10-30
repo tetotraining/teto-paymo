@@ -309,7 +309,7 @@
     ensureStyle();
     ensureUi();
     const rows = Array.from(document.querySelectorAll('#expenseHistoryRows .history-entry'));
-    const allowedMonths = new Set([0, -1, -2].map(monthKey));
+    const allowedMonths = new Set([-2, -1, 0, 1, 2].map(monthKey));
     const sorted = expenses
       .map((expense, index) => ({ expense, index, usageDate: usageDateOf(expense) }))
       .filter((item) => item.usageDate && allowedMonths.has(ym(item.usageDate)))
