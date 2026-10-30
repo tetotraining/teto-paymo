@@ -135,7 +135,15 @@
 
   function bindDesign(){
     const dark=document.getElementById('paymoDarkModeToggle');
-    if(dark)dark.onchange=()=>{localStorage.setItem(DARK_KEY,dark.checked?'1':'0');applyDesign()};
+    if(dark)dark.onchange=()=>{
+      localStorage.setItem(DARK_KEY,dark.checked?'1':'0');
+      applyDesign();
+      // iOS standalone captures status-bar appearance at document load.
+      if(window.navigator.standalone===true){
+        try{sessionStorage.setItem('paymo_theme_reload','1')}catch(_){return}
+        window.location.reload();
+      }
+    };
     document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>r.onchange=()=>{if(!r.checked)return;localStorage.setItem(ACCENT_KEY,r.value);applyDesign()});
   }
 
@@ -152,7 +160,20 @@
     bindDesign();
   }
 
-  function init(){injectStyles();setupNav();applyDesign();buildMenu()}
+  function restoreThemeScreen(){
+    if(!document.documentElement.hasAttribute('data-theme-reload'))return;
+    document.querySelector('.nav-btn[data-view="menu"]')?.click();
+    requestAnimationFrame(()=>{
+      document.getElementById('openDesignSettings')?.click();
+      document.getElementById('paymoLaunchSplash')?.remove();
+      document.documentElement.removeAttribute('data-theme-reload');
+    });
+  }
+  function init(){
+    injectStyles();setupNav();applyDesign();buildMenu();
+    if(document.readyState==='complete')restoreThemeScreen();
+    else window.addEventListener('load',restoreThemeScreen,{once:true});
+  }
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)applyDesign()});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
