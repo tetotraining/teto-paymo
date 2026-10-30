@@ -22,6 +22,7 @@ export async function onRequest(context) {
   if (!html.includes('paymo-launch-splash-script')) html = html.replace('</body>', `${splashScript}\n</body>`);
   if (!html.includes('/paymo-mobile-ui.js')) html = html.replace('</head>', '<script src="/paymo-mobile-ui.js"></script>\n</head>');
   if (!html.includes('/paymo-main-swipe.js')) html = html.replace('</head>', '<script src="/paymo-main-swipe.js"></script>\n</head>');
+  if (!html.includes('/paymo-nav-scroll-top.js')) html = html.replace('</head>', '<script src="/paymo-nav-scroll-top.js"></script>\n</head>');
   if (!html.includes('/paymo-edge-shadow.js')) html = html.replace('</head>', '<script src="/paymo-edge-shadow.js"></script>\n</head>');
   if (!html.includes('/paymo-d1.js')) html = html.replace('</body>', '<script src="/paymo-d1.js"></script>\n</body>');
   if (!html.includes('/paymo-design.js')) html = html.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
