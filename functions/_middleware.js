@@ -1,4 +1,10 @@
 export async function onRequest(context) {
+  const requestUrl = new URL(context.request.url);
+  if (requestUrl.pathname.startsWith('/api/')) {
+    const targetUrl = new URL(requestUrl.pathname + requestUrl.search, 'https://paymo-api.teto-training.workers.dev');
+    return fetch(new Request(targetUrl.toString(), context.request));
+  }
+
   const response = await context.next();
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
