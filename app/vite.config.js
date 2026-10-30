@@ -11,6 +11,7 @@ export default defineConfig({
         if (!next.includes('/paymo-edge-shadow.js')) next=next.replace('</head>', '<script src="/paymo-edge-shadow.js"></script>\n</head>');
         if (!next.includes('/paymo-design.js')) next=next.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
         if (!next.includes('/paymo-items.js')) next=next.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
+        if (!next.includes('/paymo-subpages.js')) next=next.replace('</body>', '<script src="/paymo-subpages.js"></script>\n</body>');
         if (!next.includes('/paymo-labels.js')) next=next.replace('</body>', '<script src="/paymo-labels.js"></script>\n</body>');
         if (!next.includes('/paymo-periods.js')) next=next.replace('</body>', '<script src="/paymo-periods.js"></script>\n</body>');
         if (!next.includes('/paymo-graph-detail.js')) next=next.replace('</body>', '<script src="/paymo-graph-detail.js"></script>\n</body>');
