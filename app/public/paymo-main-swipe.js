@@ -291,7 +291,7 @@
     const fastEnough = direction === 1 ? g.velocityX < -.42 : g.velocityX > .42;
     const commit = valid && (distance >= Math.min(118, w * .26) || (distance >= 42 && fastEnough));
 
-    snapTo(commit ? candidate : currentIndex, true, commit);
+    snapTo(commit ? candidate : currentIndex, true);
   }, { passive:true });
 
   document.addEventListener('touchcancel', () => {
