@@ -41,13 +41,7 @@
       document.head.appendChild(meta);
     }
     if(meta)meta.setAttribute('content',theme.base);
-    let statusBar=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if(!statusBar){
-      statusBar=document.createElement('meta');
-      statusBar.name='apple-mobile-web-app-status-bar-style';
-      document.head.appendChild(statusBar);
-    }
-    statusBar.setAttribute('content',s.dark?'black':'default');
+
   }
 
   function setupNav(){
@@ -138,11 +132,6 @@
     if(dark)dark.onchange=()=>{
       localStorage.setItem(DARK_KEY,dark.checked?'1':'0');
       applyDesign();
-      // iOS standalone captures status-bar appearance at document load.
-      if(window.navigator.standalone===true){
-        try{sessionStorage.setItem('paymo_theme_reload','1')}catch(_){return}
-        window.location.reload();
-      }
     };
     document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>r.onchange=()=>{if(!r.checked)return;localStorage.setItem(ACCENT_KEY,r.value);applyDesign()});
   }
@@ -160,20 +149,7 @@
     bindDesign();
   }
 
-  function restoreThemeScreen(){
-    if(!document.documentElement.hasAttribute('data-theme-reload'))return;
-    document.querySelector('.nav-btn[data-view="menu"]')?.click();
-    requestAnimationFrame(()=>{
-      document.getElementById('openDesignSettings')?.click();
-      document.getElementById('paymoLaunchSplash')?.remove();
-      document.documentElement.removeAttribute('data-theme-reload');
-    });
-  }
-  function init(){
-    injectStyles();setupNav();applyDesign();buildMenu();
-    if(document.readyState==='complete')restoreThemeScreen();
-    else window.addEventListener('load',restoreThemeScreen,{once:true});
-  }
+  function init(){injectStyles();setupNav();applyDesign();buildMenu()}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)applyDesign()});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
