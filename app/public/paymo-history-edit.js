@@ -225,6 +225,12 @@
     document.getElementById('historyEditSheet').hidden = false;
   }
 
+  window.paymoOpenHistoryEditor = (id) => {
+    const expense = expenses.find((e) => String(e.id) === String(id));
+    if (!expense) return;
+    openEditor(expense.id);
+  };
+
   function closeEditor() {
     editingId = null;
     editSplitCount = 1;
@@ -328,6 +334,7 @@
     render = function (...args) {
       const result = previousRender(...args);
       bindRows();
+      if (typeof window.paymoRenderCategoryHistory === 'function') window.paymoRenderCategoryHistory();
       return result;
     };
   }
