@@ -1,17 +1,21 @@
 (() => {
-  const COLORS={red:'#E63946',orange:'#FF852F',yellow:'#FFD166',pink:'#f0aae3',purple:'#E085FF',green:'#B9F486',lightgreen:'#b9f068',pastelgreen:'#a7e2c8',blue:'#0D43FF',lightBlue:'#4EA8DE'};
-  const NAMES={red:'red',orange:'orange',yellow:'yellow',pink:'pink',purple:'purple',green:'green',lightgreen:'lightgreen',pastelgreen:'pastelgreen',blue:'blue',lightBlue:'light Blue'};
-  const KEYS=['red','orange','yellow','pink','purple','green','lightgreen','pastelgreen','blue','lightBlue'];
+  const COLORS={green:'#B9F486',red:'#E63946',orange:'#FF852F',yellow:'#FFD166',blue:'#0D43FF',lightBlue:'#4EA8DE',purple:'#E085FF'};
+  const NAMES={green:'green',red:'red',orange:'orange',yellow:'yellow',blue:'blue',lightBlue:'light Blue',purple:'purple',random:'random'};
+  const KEYS=['green','red','orange','yellow','blue','lightBlue','purple'];
+  const ALL_KEYS=[...KEYS,'random'];
+  const randomKey=KEYS[Math.floor(Math.random()*KEYS.length)];
   const ACCENT_KEY='paymo_accent',DARK_KEY='paymo_dark_mode';
 
   function current(){
-    const saved=localStorage.getItem(ACCENT_KEY)||'purple';
-    const accent=KEYS.includes(saved)?saved:'purple';
+    let saved=localStorage.getItem(ACCENT_KEY)||'green';
+    if(saved==='basic')saved='green';
+    if(saved==='cyan')saved='lightBlue';
+    const accent=ALL_KEYS.includes(saved)?saved:'green';
     if(saved!==accent)localStorage.setItem(ACCENT_KEY,accent);
     return{dark:localStorage.getItem(DARK_KEY)!=='0',accent};
   }
-  function resolvedAccent(key){return COLORS[key]||COLORS.purple}
-  function accentInk(key){return ['red','blue'].includes(key)?'#ffffff':'#071006'}
+  function resolvedAccent(key){return COLORS[key==='random'?randomKey:key]||COLORS.green}
+  function accentInk(key){return ['yellow','orange','green','lightBlue','purple'].includes(key)?'#071006':'#ffffff'}
 
   function applyDesign(){
     const s=current(),root=document.documentElement;
@@ -40,14 +44,7 @@
       meta.name='theme-color';
       document.head.appendChild(meta);
     }
-    if(meta)meta.setAttribute('content',theme.base);
-    let statusBar=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if(!statusBar){
-      statusBar=document.createElement('meta');
-      statusBar.name='apple-mobile-web-app-status-bar-style';
-      document.head.appendChild(statusBar);
-    }
-    statusBar.setAttribute('content',s.dark?'black':'default');
+    meta.setAttribute('content',theme.base);
   }
 
   function setupNav(){
@@ -60,10 +57,10 @@
     const style=document.createElement('style');
     style.id='paymo-design-style';
     style.textContent=`
-      :root{--page-bg:#050605;--page-fg:#f5f5f3;--surface:#101310;--theme-muted:#9ca198;--theme-line:#293029;--accent:#E085FF;--accent-ink:#071006}
+      :root{--page-bg:#050605;--page-fg:#f5f5f3;--surface:#101310;--theme-muted:#9ca198;--theme-line:#293029;--accent:#B9F486;--accent-ink:#071006}
       html,body,.app{background:var(--page-bg)!important;color:var(--page-fg)!important}
       .app{padding-bottom:calc(120px + env(safe-area-inset-bottom))!important}
-      .page-title,.design-title,.settings-label{color:var(--page-fg)!important}
+      .page-title,.design-title{color:var(--page-fg)!important}
       .card{background:var(--surface)!important;color:var(--page-fg)!important}
       .row,.upcoming-payment-row{border-color:var(--theme-line)!important}
       .chart-head span,.bar-label,.empty,.placeholder,.small,.upcoming-payments-title,.upcoming-payment-date{color:var(--theme-muted)!important}
@@ -101,21 +98,24 @@
       .design-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
       .design-back{width:38px;height:38px;border:0;border-radius:50%;font-size:26px;line-height:1;display:grid;place-items:center}
       .design-title{margin:0;font-size:30px;font-weight:900;letter-spacing:-1px}
-      .settings-label{display:block;font-size:13px;font-weight:800;margin:18px 4px 8px}
-      .design-card{background:var(--surface)!important;color:var(--page-fg)!important;border-radius:22px;padding:18px 20px}
-      .design-card-row{display:flex;align-items:center;justify-content:space-between;gap:18px;font-weight:800}
-      .toggle{appearance:none;width:50px;height:30px;background:#39393d;border-radius:999px;position:relative;transition:.18s;border:0;flex:none}
+      .settings-label{display:block;color:var(--theme-muted)!important;font-size:14px;font-weight:400;margin:18px 0 8px}
+      .design-card{background:var(--surface)!important;color:var(--page-fg)!important;border-radius:18px;margin:18px 0 30px;padding:0}
+      .design-card-row{display:flex;align-items:center;gap:13px;padding:17px}
+      .design-card-row strong{font-weight:500;font-size:18px}
+      .toggle{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;margin-left:auto;width:51px;height:31px;border:0;border-radius:999px;background:#39393d;outline:none;cursor:pointer;transition:background .2s ease}
+      .toggle:before{content:"";position:absolute;width:27px;height:27px;left:2px;top:2px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0006;transition:transform .2s cubic-bezier(.4,0,.2,1)}
       html[data-theme="light"] .toggle{background:#d1d1d6}
-      .toggle:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0002;transition:.18s}
       .toggle:checked{background:var(--accent)}
       .toggle:checked:before{transform:translateX(20px)}
-      .color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 8px;background:var(--surface)!important;border-radius:22px;padding:18px 10px}
-      .color-option{display:grid;place-items:center;gap:7px;cursor:pointer;color:var(--page-fg)!important;font-size:11px;text-align:center}
+      .toggle:active:before{width:29px}
+      .toggle:checked:active:before{transform:translateX(18px)}
+      .color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;margin:14px 0 28px}
+      .color-option{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;cursor:pointer;color:var(--page-fg)!important}
       .color-option input{position:absolute;opacity:0;pointer-events:none}
-      .color-dot{width:38px;height:38px;border-radius:50%;background:var(--swatch);display:block;border:3px solid transparent;box-shadow:0 0 0 1px var(--theme-line)}
-      .color-option input:checked+.color-dot{border-color:var(--surface);box-shadow:0 0 0 3px var(--accent)}
-      .color-option small{font-size:9px;font-weight:700;white-space:nowrap;color:var(--theme-muted)}
-      .color-option input:checked~small{color:var(--page-fg)!important}
+      .color-dot{width:42px;height:42px;border-radius:50%;background:var(--swatch);border:3px solid transparent;box-shadow:0 0 0 1px var(--theme-line)}
+      .color-option input:checked+.color-dot{border-color:var(--page-bg);box-shadow:0 0 0 3px var(--accent)}
+      .color-option small{font-size:12px;color:var(--theme-muted)}
+      .color-option input:checked~small{color:var(--page-fg)!important;font-weight:700}
 
       .item-add-card,.item-edit-card,.item-register-row,.item-empty{background:var(--surface)!important;color:var(--page-fg)!important}
       .item-edit-title,.item-register-name{color:var(--page-fg)!important}
@@ -130,7 +130,7 @@
 
   function designControls(){
     const s=current();
-    return `<span class="settings-label">ベースカラー</span><section class="design-card"><div class="design-card-row"><strong>ダークモード</strong><input id="paymoDarkModeToggle" class="toggle" type="checkbox" ${s.dark?'checked':''}></div></section><span class="settings-label">サブカラー</span><div class="color-grid">${KEYS.map(k=>`<label class="color-option"><input type="radio" name="paymoAccent" value="${k}" ${s.accent===k?'checked':''}><span class="color-dot" style="--swatch:${COLORS[k]}"></span><small>${NAMES[k]}</small></label>`).join('')}</div>`;
+    return `<span class="settings-label">ベースカラー</span><section class="design-card"><div class="design-card-row"><strong>ダークモード</strong><input id="paymoDarkModeToggle" class="toggle" type="checkbox" ${s.dark?'checked':''}></div></section><span class="settings-label">サブカラー</span><div class="color-grid">${ALL_KEYS.map(k=>`<label class="color-option"><input type="radio" name="paymoAccent" value="${k}" ${s.accent===k?'checked':''}><span class="color-dot" style="--swatch:${k==='random'?'conic-gradient(#B9F486 0 14.28%,#E63946 14.28% 28.56%,#FF852F 28.56% 42.84%,#FFD166 42.84% 57.12%,#0D43FF 57.12% 71.4%,#4EA8DE 71.4% 85.68%,#E085FF 85.68%)':COLORS[k]}"></span><small>${NAMES[k]}</small></label>`).join('')}</div>`;
   }
 
   function bindDesign(){
@@ -138,13 +138,12 @@
     if(dark)dark.onchange=()=>{
       localStorage.setItem(DARK_KEY,dark.checked?'1':'0');
       applyDesign();
-      // iOS standalone captures status-bar appearance at document load.
-      if(window.navigator.standalone===true){
-        try{sessionStorage.setItem('paymo_theme_reload','1')}catch(_){return}
-        window.location.reload();
-      }
     };
-    document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>r.onchange=()=>{if(!r.checked)return;localStorage.setItem(ACCENT_KEY,r.value);applyDesign()});
+    document.querySelectorAll('input[name="paymoAccent"]').forEach(r=>r.onchange=()=>{
+      if(!r.checked)return;
+      localStorage.setItem(ACCENT_KEY,r.value);
+      applyDesign();
+    });
   }
 
   function showView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id)?.classList.add('active')}
@@ -160,20 +159,7 @@
     bindDesign();
   }
 
-  function restoreThemeScreen(){
-    if(!document.documentElement.hasAttribute('data-theme-reload'))return;
-    document.querySelector('.nav-btn[data-view="menu"]')?.click();
-    requestAnimationFrame(()=>{
-      document.getElementById('openDesignSettings')?.click();
-      document.getElementById('paymoLaunchSplash')?.remove();
-      document.documentElement.removeAttribute('data-theme-reload');
-    });
-  }
-  function init(){
-    injectStyles();setupNav();applyDesign();buildMenu();
-    if(document.readyState==='complete')restoreThemeScreen();
-    else window.addEventListener('load',restoreThemeScreen,{once:true});
-  }
+  function init(){injectStyles();setupNav();applyDesign();buildMenu()}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)applyDesign()});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
