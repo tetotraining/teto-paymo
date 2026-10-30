@@ -230,7 +230,7 @@
   function init() {
     bindMenu();
     new MutationObserver(bindMenu).observe(document.body, { childList: true, subtree: true });
-    if (Notification?.permission === 'granted') ensureSubscription(false).catch(() => {});
+    if ('Notification' in window && Notification.permission === 'granted') ensureSubscription(false).catch(() => {});
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
