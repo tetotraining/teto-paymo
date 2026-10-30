@@ -23,6 +23,7 @@ export default defineConfig({
         if (!next.includes('/paymo-history-delete-confirm.js')) next=next.replace('</body>', '<script src="/paymo-history-delete-confirm.js"></script>\n</body>');
         if (!next.includes('/paymo-ui-rules.js')) next=next.replace('</body>', '<script src="/paymo-ui-rules.js"></script>\n</body>');
         if (!next.includes('/paymo-bulk-history-delete.js')) next=next.replace('</body>', '<script src="/paymo-bulk-history-delete.js"></script>\n</body>');
+        if (!next.includes('/paymo-graph-detail-edit.js')) next=next.replace('</body>', '<script src="/paymo-graph-detail-edit.js"></script>\n</body>');
         return next;
       }
     }
