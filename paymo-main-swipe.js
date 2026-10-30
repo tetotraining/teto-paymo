@@ -1,5 +1,5 @@
 (() => {
-  const VIEW_ORDER = ['home', 'graph', 'notify', 'menu'];
+  const VIEW_ORDER = ['home', 'graph', 'categorySpend', 'menu'];
   let currentIndex = 0;
   let gesture = null;
   let viewport = null;
