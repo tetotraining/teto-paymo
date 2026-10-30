@@ -11,6 +11,13 @@
 <meta name="apple-mobile-web-app-title" content="Paymo" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<script>
+try{
+  const isDark=localStorage.getItem('paymo_dark_mode')!=='0';
+  document.querySelector('meta[name="theme-color"]').content=isDark?'#050605':'#f5f5f3';
+  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content=isDark?'black':'default';
+}catch(_){}
+</script>
 <style>
 :root{--bg:#000;--card:#f4f4f2;--text:#050505;--muted:#777;--line:#d8d8d4;--nav:#f7f7f5;--accent:#111}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;color:#fff}
