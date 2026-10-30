@@ -62,6 +62,7 @@
     const style = document.createElement('style');
     style.id = 'paymo-notification-style';
     style.textContent = `
+      .paymo-notification-view{touch-action:pan-y}
       .paymo-notification-head{display:flex;align-items:center;gap:10px;margin-bottom:18px}
       .paymo-notification-back{width:38px;height:38px;border:0;border-radius:50%;background:transparent!important;color:var(--page-fg)!important;font-size:30px;line-height:1;display:grid;place-items:center;padding:0}
       .paymo-notification-title{margin:0;font-size:30px;font-weight:900;letter-spacing:-1px;color:var(--page-fg)!important}
@@ -101,10 +102,99 @@
       </div>`;
   }
 
+  function bindBackSwipe(view) {
+    if (!view || view.dataset.paymoBackSwipeBound === '1') return;
+    view.dataset.paymoBackSwipeBound = '1';
+    let gesture = null;
+
+    const resetInlineMotion = () => {
+      view.style.transition = '';
+      view.style.transform = '';
+    };
+
+    view.addEventListener('touchstart', (event) => {
+      if (!view.classList.contains('active') || event.touches.length !== 1) {
+        gesture = null;
+        return;
+      }
+      if (event.target?.closest?.('select,input,button,.paymo-switch')) {
+        gesture = null;
+        return;
+      }
+      const touch = event.touches[0];
+      gesture = {
+        startX: touch.clientX,
+        startY: touch.clientY,
+        lastX: touch.clientX,
+        lastAt: performance.now(),
+        velocityX: 0,
+        dx: 0,
+        engaged: false
+      };
+    }, { passive: true });
+
+    view.addEventListener('touchmove', (event) => {
+      const g = gesture;
+      if (!g || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - g.startX;
+      const dy = touch.clientY - g.startY;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      const now = performance.now();
+      const dt = Math.max(1, now - g.lastAt);
+      g.velocityX = (touch.clientX - g.lastX) / dt;
+      g.lastX = touch.clientX;
+      g.lastAt = now;
+
+      if (!g.engaged) {
+        if (ax < 9 || ax < ay * 1.15) return;
+        if (dx <= 0) {
+          gesture = null;
+          return;
+        }
+        g.engaged = true;
+        view.style.transition = 'none';
+      }
+
+      g.dx = Math.max(0, dx);
+      const width = Math.max(1, view.getBoundingClientRect().width || window.innerWidth || 1);
+      const drag = Math.min(width, g.dx);
+      view.style.transform = `translate3d(${drag}px,0,0)`;
+      if (event.cancelable) event.preventDefault();
+    }, { passive: false });
+
+    view.addEventListener('touchend', (event) => {
+      const g = gesture;
+      gesture = null;
+      if (!g?.engaged || event.changedTouches.length !== 1) return;
+      const width = Math.max(1, view.getBoundingClientRect().width || window.innerWidth || 1);
+      const commit = g.dx >= Math.min(110, width * .25) || (g.dx >= 42 && g.velocityX > .42);
+      view.style.transition = 'transform 260ms cubic-bezier(.22,.72,.24,1)';
+      view.style.transform = commit ? `translate3d(${width}px,0,0)` : 'translate3d(0,0,0)';
+      setTimeout(() => {
+        if (commit) showView('menu');
+        resetInlineMotion();
+      }, 275);
+    }, { passive: true });
+
+    view.addEventListener('touchcancel', () => {
+      const g = gesture;
+      gesture = null;
+      if (!g?.engaged) return;
+      view.style.transition = 'transform 260ms cubic-bezier(.22,.72,.24,1)';
+      view.style.transform = 'translate3d(0,0,0)';
+      setTimeout(resetInlineMotion, 275);
+    }, { passive: true });
+  }
+
   function ensureView() {
     injectStyle();
     let view = document.getElementById('notificationSettings');
-    if (view) return view;
+    if (view) {
+      bindBackSwipe(view);
+      return view;
+    }
     const app = document.querySelector('.app');
     if (!app) return null;
     view = document.createElement('section');
@@ -139,6 +229,7 @@
       });
     });
     document.getElementById('paymoEnablePush').onclick = enablePush;
+    bindBackSwipe(view);
     syncRowStates();
     return view;
   }
