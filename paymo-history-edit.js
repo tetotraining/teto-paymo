@@ -309,10 +309,10 @@
     ensureStyle();
     ensureUi();
     const rows = Array.from(document.querySelectorAll('#expenseHistoryRows .history-entry'));
-    const allowedMonths = new Set([-2, -1, 0, 1, 2].map(monthKey));
+    const oldestMonth = monthKey(-2);
     const sorted = expenses
       .map((expense, index) => ({ expense, index, usageDate: usageDateOf(expense) }))
-      .filter((item) => item.usageDate && allowedMonths.has(ym(item.usageDate)))
+      .filter((item) => item.usageDate && String(ym(item.usageDate) || '') >= oldestMonth)
       .sort((a, b) => String(b.usageDate).localeCompare(String(a.usageDate)) || b.index - a.index);
 
     rows.forEach((row, index) => {
