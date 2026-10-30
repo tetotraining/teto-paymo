@@ -24,26 +24,31 @@ jobs:
           expected_design="$(sha256sum paymo-design.js | awk '{print $1}')"
           expected_ios="$(sha256sum paymo-ios-theme-sync.js | awk '{print $1}')"
           expected_history="$(sha256sum paymo-history-edit.js | awk '{print $1}')"
+          expected_periods="$(sha256sum paymo-periods.js | awk '{print $1}')"
           echo "expected_design=$expected_design"
           echo "expected_ios=$expected_ios"
           echo "expected_history=$expected_history"
+          echo "expected_periods=$expected_periods"
           for i in $(seq 1 30); do
             ts=$(date +%s)
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$ts" -o /tmp/paymo-design.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-ios-theme-sync.js?ts=$ts" -o /tmp/paymo-ios-theme-sync.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-history-edit.js?ts=$ts" -o /tmp/paymo-history-edit.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-periods.js?ts=$ts" -o /tmp/paymo-periods.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
-            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-index.html ]; then
+            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-periods.js ] && [ -s /tmp/paymo-index.html ]; then
               actual_design="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
               actual_ios="$(sha256sum /tmp/paymo-ios-theme-sync.js | awk '{print $1}')"
               actual_history="$(sha256sum /tmp/paymo-history-edit.js | awk '{print $1}')"
-              echo "attempt=$i design=$actual_design ios=$actual_ios history=$actual_history"
+              actual_periods="$(sha256sum /tmp/paymo-periods.js | awk '{print $1}')"
+              echo "attempt=$i design=$actual_design ios=$actual_ios history=$actual_history periods=$actual_periods"
               if [ "$actual_design" = "$expected_design" ] \
                 && [ "$actual_ios" = "$expected_ios" ] \
                 && [ "$actual_history" = "$expected_history" ] \
+                && [ "$actual_periods" = "$expected_periods" ] \
                 && grep -q '/paymo-ios-theme-sync.js' /tmp/paymo-index.html \
                 && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches the latest Paymo code, including history click mapping."
+                echo "Cloudflare Pages production matches the latest Paymo code, including future usage history and click mapping."
                 exit 0
               fi
             fi
