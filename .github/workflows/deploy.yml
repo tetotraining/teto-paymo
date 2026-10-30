@@ -9,7 +9,6 @@ on:
       - 'app/**'
       - 'functions/**'
       - 'paymo-*.js'
-      - 'deploy-marker.txt'
       - '.github/workflows/deploy.yml'
 
 jobs:
@@ -17,19 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
-      - name: Verify Cloudflare Pages production
+      - uses: actions/checkout@v4
+      - name: Verify Cloudflare Pages production matches main
         shell: bash
         run: |
           set -e
-          expected='paymo-20261030-1804'
+          expected="$(sha256sum paymo-design.js | awk '{print $1}')"
+          echo "expected=$expected"
           for i in $(seq 1 30); do
-            body="$(curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/deploy-marker.txt?ts=$(date +%s)" || true)"
-            echo "attempt=$i body=$body"
-            if [ "$body" = "$expected" ]; then
-              echo "Cloudflare Pages production is serving the latest Paymo deployment."
-              exit 0
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$(date +%s)" -o /tmp/paymo-design.js || true
+            if [ -s /tmp/paymo-design.js ]; then
+              actual="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
+              echo "attempt=$i actual=$actual"
+              if [ "$actual" = "$expected" ]; then
+                echo "Cloudflare Pages production matches the latest Paymo design code."
+                exit 0
+              fi
             fi
             sleep 5
           done
-          echo "Cloudflare Pages production is not serving the latest Paymo deployment."
+          echo "Cloudflare Pages production does not match the latest Paymo design code."
           exit 1
