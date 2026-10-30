@@ -21,23 +21,28 @@ jobs:
         shell: bash
         run: |
           set -e
-          expected="$(sha256sum paymo-design.js | awk '{print $1}')"
-          echo "expected=$expected"
+          expected_design="$(sha256sum paymo-design.js | awk '{print $1}')"
+          expected_ios="$(sha256sum paymo-ios-theme-sync.js | awk '{print $1}')"
+          echo "expected_design=$expected_design"
+          echo "expected_ios=$expected_ios"
           for i in $(seq 1 30); do
             ts=$(date +%s)
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-design.js?ts=$ts" -o /tmp/paymo-design.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-ios-theme-sync.js?ts=$ts" -o /tmp/paymo-ios-theme-sync.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
-            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-index.html ]; then
-              actual="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
-              echo "attempt=$i actual=$actual"
-              if [ "$actual" = "$expected" ] \
-                && grep -q 'paymo-status-safe-area-style' /tmp/paymo-index.html \
-                && grep -q 'apple-mobile-web-app-status-bar-style" content="black-translucent' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches latest Paymo code and iOS top safe-area theme sync is live."
+            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-index.html ]; then
+              actual_design="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
+              actual_ios="$(sha256sum /tmp/paymo-ios-theme-sync.js | awk '{print $1}')"
+              echo "attempt=$i design=$actual_design ios=$actual_ios"
+              if [ "$actual_design" = "$expected_design" ] \
+                && [ "$actual_ios" = "$expected_ios" ] \
+                && grep -q '/paymo-ios-theme-sync.js' /tmp/paymo-index.html \
+                && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
+                echo "Cloudflare Pages production has the latest Paymo iOS theme sync."
                 exit 0
               fi
             fi
             sleep 5
           done
-          echo "Cloudflare Pages production has not picked up the latest Paymo deployment."
+          echo "Cloudflare Pages production has not picked up the latest Paymo iOS theme sync."
           exit 1
