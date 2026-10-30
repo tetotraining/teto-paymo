@@ -8,7 +8,8 @@
     #paymoGraphDetail .paymo-graph-detail-total{font-size:30px!important}
     #paymoGraphDetail .paymo-graph-detail-group-name{font-size:20px!important}
     #paymoGraphDetail .paymo-graph-detail-group-total{font-size:18px!important}
-    #paymoGraphDetail .paymo-graph-detail-date{font-size:15px!important}
+    #paymoGraphDetail .paymo-graph-detail-date,
+    #paymoGraphDetail .paymo-graph-detail-due{font-size:15px!important}
     #paymoGraphDetail .paymo-graph-detail-amount{font-size:17px!important}
     #paymoGraphDetail .paymo-graph-detail-paid{font-size:11px!important}
   `;
