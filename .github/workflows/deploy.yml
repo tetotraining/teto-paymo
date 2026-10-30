@@ -30,6 +30,7 @@ jobs:
           expected_category_billing="$(sha256sum paymo-category-billing-summary.js | awk '{print $1}')"
           expected_swipe="$(sha256sum paymo-main-swipe.js | awk '{print $1}')"
           expected_auth="$(sha256sum paymo-auth.js | awk '{print $1}')"
+          expected_auth_enhance="$(sha256sum paymo-auth-enhance.js | awk '{print $1}')"
           expected_migration="$(sha256sum paymo-account-migration.js | awk '{print $1}')"
           expected_d1="$(sha256sum paymo-d1.js | awk '{print $1}')"
           expected_settings_watch="$(sha256sum paymo-settings-watch.js | awk '{print $1}')"
@@ -45,13 +46,14 @@ jobs:
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-category-billing-summary.js?ts=$ts" -o /tmp/paymo-category-billing-summary.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-main-swipe.js?ts=$ts" -o /tmp/paymo-main-swipe.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-auth.js?ts=$ts" -o /tmp/paymo-auth.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-auth-enhance.js?ts=$ts" -o /tmp/paymo-auth-enhance.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-account-migration.js?ts=$ts" -o /tmp/paymo-account-migration.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-d1.js?ts=$ts" -o /tmp/paymo-d1.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-settings-watch.js?ts=$ts" -o /tmp/paymo-settings-watch.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-history-api.js?ts=$ts" -o /tmp/paymo-history-api.js || true
             curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
             auth_status="$(curl -sS --max-time 10 -o /tmp/paymo-me.json -w '%{http_code}' -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/api/me?ts=$ts" || true)"
-            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-periods.js ] && [ -s /tmp/paymo-category-spend.js ] && [ -s /tmp/paymo-category-detail.js ] && [ -s /tmp/paymo-category-billing-summary.js ] && [ -s /tmp/paymo-main-swipe.js ] && [ -s /tmp/paymo-auth.js ] && [ -s /tmp/paymo-account-migration.js ] && [ -s /tmp/paymo-d1.js ] && [ -s /tmp/paymo-settings-watch.js ] && [ -s /tmp/paymo-history-api.js ] && [ -s /tmp/paymo-index.html ]; then
+            if [ -s /tmp/paymo-design.js ] && [ -s /tmp/paymo-ios-theme-sync.js ] && [ -s /tmp/paymo-history-edit.js ] && [ -s /tmp/paymo-periods.js ] && [ -s /tmp/paymo-category-spend.js ] && [ -s /tmp/paymo-category-detail.js ] && [ -s /tmp/paymo-category-billing-summary.js ] && [ -s /tmp/paymo-main-swipe.js ] && [ -s /tmp/paymo-auth.js ] && [ -s /tmp/paymo-auth-enhance.js ] && [ -s /tmp/paymo-account-migration.js ] && [ -s /tmp/paymo-d1.js ] && [ -s /tmp/paymo-settings-watch.js ] && [ -s /tmp/paymo-history-api.js ] && [ -s /tmp/paymo-index.html ]; then
               actual_design="$(sha256sum /tmp/paymo-design.js | awk '{print $1}')"
               actual_ios="$(sha256sum /tmp/paymo-ios-theme-sync.js | awk '{print $1}')"
               actual_history="$(sha256sum /tmp/paymo-history-edit.js | awk '{print $1}')"
@@ -61,11 +63,12 @@ jobs:
               actual_category_billing="$(sha256sum /tmp/paymo-category-billing-summary.js | awk '{print $1}')"
               actual_swipe="$(sha256sum /tmp/paymo-main-swipe.js | awk '{print $1}')"
               actual_auth="$(sha256sum /tmp/paymo-auth.js | awk '{print $1}')"
+              actual_auth_enhance="$(sha256sum /tmp/paymo-auth-enhance.js | awk '{print $1}')"
               actual_migration="$(sha256sum /tmp/paymo-account-migration.js | awk '{print $1}')"
               actual_d1="$(sha256sum /tmp/paymo-d1.js | awk '{print $1}')"
               actual_settings_watch="$(sha256sum /tmp/paymo-settings-watch.js | awk '{print $1}')"
               actual_history_api="$(sha256sum /tmp/paymo-history-api.js | awk '{print $1}')"
-              echo "attempt=$i auth_status=$auth_status auth=$actual_auth d1=$actual_d1"
+              echo "attempt=$i auth_status=$auth_status auth=$actual_auth auth_enhance=$actual_auth_enhance d1=$actual_d1"
               if [ "$actual_design" = "$expected_design" ] \
                 && [ "$actual_ios" = "$expected_ios" ] \
                 && [ "$actual_history" = "$expected_history" ] \
@@ -75,6 +78,7 @@ jobs:
                 && [ "$actual_category_billing" = "$expected_category_billing" ] \
                 && [ "$actual_swipe" = "$expected_swipe" ] \
                 && [ "$actual_auth" = "$expected_auth" ] \
+                && [ "$actual_auth_enhance" = "$expected_auth_enhance" ] \
                 && [ "$actual_migration" = "$expected_migration" ] \
                 && [ "$actual_d1" = "$expected_d1" ] \
                 && [ "$actual_settings_watch" = "$expected_settings_watch" ] \
@@ -82,6 +86,7 @@ jobs:
                 && [ "$auth_status" = "401" ] \
                 && grep -q "'home', 'graph', 'categorySpend', 'menu'" /tmp/paymo-main-swipe.js \
                 && grep -q '/paymo-auth.js' /tmp/paymo-index.html \
+                && grep -q '/paymo-auth-enhance.js' /tmp/paymo-index.html \
                 && grep -q '/paymo-account-migration.js' /tmp/paymo-index.html \
                 && grep -q '/paymo-d1.js' /tmp/paymo-index.html \
                 && grep -q '/paymo-settings-watch.js' /tmp/paymo-index.html \
@@ -94,7 +99,7 @@ jobs:
                 && ! grep -q 'data-view="notify"' /tmp/paymo-index.html \
                 && ! grep -q 'id="notify"' /tmp/paymo-index.html \
                 && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches main, including LISTell-style Paymo account authentication and sync."
+                echo "Cloudflare Pages production matches main, including Paymo account auth, recovery confirmation, and sync."
                 exit 0
               fi
             fi
