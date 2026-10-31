@@ -10,6 +10,7 @@ export async function onRequest(context) {
   if (!type.includes('text/html')) return response;
 
   let html = await response.text();
+  html = html.replace(/\s*<meta\s+name=["']apple-mobile-web-app-status-bar-style["'][^>]*>/gi, '');
 
   html = html.replace(
     'function monthKey(offset=0){const d=new Date();d.setMonth(d.getMonth()+offset);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,\'0\')}`}',
