@@ -16,13 +16,7 @@
     }
     themeMeta.setAttribute('content', bg);
 
-    let statusMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if (!statusMeta) {
-      statusMeta = document.createElement('meta');
-      statusMeta.name = 'apple-mobile-web-app-status-bar-style';
-      document.head.appendChild(statusMeta);
-    }
-    statusMeta.setAttribute('content', dark ? 'black' : 'default');
+    document.querySelectorAll('meta[name="apple-mobile-web-app-status-bar-style"]').forEach((meta) => meta.remove());
   }
 
   window.paymoSyncThemeChrome = syncThemeChrome;
