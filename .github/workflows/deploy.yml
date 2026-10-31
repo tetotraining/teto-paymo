@@ -98,8 +98,9 @@ jobs:
                 && grep -q 'id="categorySpend"' /tmp/paymo-index.html \
                 && ! grep -q 'data-view="notify"' /tmp/paymo-index.html \
                 && ! grep -q 'id="notify"' /tmp/paymo-index.html \
-                && grep -q 'apple-mobile-web-app-status-bar-style" content="default' /tmp/paymo-index.html; then
-                echo "Cloudflare Pages production matches main, including Paymo account auth, recovery confirmation, and sync."
+                && ! grep -q 'apple-mobile-web-app-status-bar-style' /tmp/paymo-index.html \
+                && grep -q 'paymo-theme-reload-sync' /tmp/paymo-index.html; then
+                echo "Cloudflare Pages production matches main, including Paymo account auth, recovery confirmation, sync, and iOS theme reload workaround."
                 exit 0
               fi
             fi
