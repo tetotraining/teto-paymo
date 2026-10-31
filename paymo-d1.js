@@ -119,7 +119,8 @@
     const clean = payees.filter((item) => item && typeof item.name === 'string' && typeof item.color === 'string');
     const before = localStorage.getItem(PAYEE_KEY) || '';
     const next = JSON.stringify(clean);
-    if (before !== next) localStorage.setItem(PAYEE_KEY, next);
+    if (before === next) return;
+    localStorage.setItem(PAYEE_KEY, next);
     try {
       if (typeof PAYEES !== 'undefined') {
         PAYEES.splice(0, PAYEES.length, ...clean.map((item) => ({ ...item })));
