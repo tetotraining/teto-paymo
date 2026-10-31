@@ -1,5 +1,6 @@
 (() => {
   let selected = null;
+  let editorObserverBound = false;
 
   const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
   const usageDateOf = (expense) => expense?.usageDate || expense?.usage_date || expense?.date || '';
@@ -75,6 +76,8 @@
         font-size:10px!important;
         text-align:right;
       }
+      body.paymo-graph-detail-open .history-edit-backdrop{z-index:900!important}
+      body.paymo-graph-detail-open .history-edit-sheet{z-index:901!important}
     `;
     document.head.appendChild(style);
   }
@@ -154,6 +157,19 @@
     });
   }
 
+  function bindEditorReturnRefresh() {
+    if (editorObserverBound) return;
+    const sheet = document.getElementById('historyEditSheet');
+    if (!sheet) return;
+    editorObserverBound = true;
+    new MutationObserver(() => {
+      if (!sheet.hidden) return;
+      const page = document.getElementById('paymoGraphDetail');
+      if (!page?.classList.contains('is-visible')) return;
+      queueMicrotask(annotateRows);
+    }).observe(sheet, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
   function captureEditorOpener(id) {
     const direct = Array.from(document.querySelectorAll('#expenseHistoryRows .history-entry'))
       .find((row) => row.dataset.expenseId === String(id));
@@ -201,17 +217,20 @@
     annotateRows();
     const id = row.dataset.expenseId;
     if (!id) return;
-    const opener = captureEditorOpener(id);
-    if (typeof opener !== 'function') return;
 
     event.preventDefault();
     event.stopPropagation();
-    const back = document.getElementById('paymoGraphDetailBack');
-    if (back) {
-      back.click();
-      setTimeout(() => opener(), 260);
-    } else {
+
+    if (typeof window.paymoOpenHistoryEditor === 'function') {
+      window.paymoOpenHistoryEditor(id);
+      bindEditorReturnRefresh();
+      return;
+    }
+
+    const opener = captureEditorOpener(id);
+    if (typeof opener === 'function') {
       opener();
+      bindEditorReturnRefresh();
     }
   }, true);
 
