@@ -22,12 +22,14 @@
       statusMeta.name = 'apple-mobile-web-app-status-bar-style';
       document.head.appendChild(statusMeta);
     }
-    statusMeta.setAttribute('content', 'black');
+    statusMeta.setAttribute('content', dark ? 'black' : 'default');
   }
+
+  window.paymoSyncThemeChrome = syncThemeChrome;
 
   document.addEventListener('change', (event) => {
     if (event.target?.id !== 'paymoDarkModeToggle') return;
-    requestAnimationFrame(syncThemeChrome);
+    syncThemeChrome();
   });
 
   document.addEventListener('visibilitychange', () => {
