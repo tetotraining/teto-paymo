@@ -221,6 +221,14 @@
     event.preventDefault();
     event.stopPropagation();
 
+    const historyRow = Array.from(document.querySelectorAll('#expenseHistoryRows .history-entry'))
+      .find((item) => item.dataset.expenseId === String(id));
+    if (historyRow) {
+      historyRow.click();
+      bindEditorReturnRefresh();
+      return;
+    }
+
     if (typeof window.paymoOpenHistoryEditor === 'function') {
       window.paymoOpenHistoryEditor(id);
       bindEditorReturnRefresh();
