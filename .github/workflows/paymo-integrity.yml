@@ -1,0 +1,72 @@
+name: Verify Paymo interaction integrity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/public/paymo-*.js'
+      - 'paymo-*.js'
+      - 'functions/_middleware.js'
+      - '.github/workflows/paymo-integrity.yml'
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify root and production client mirrors
+        shell: bash
+        run: |
+          set -euo pipefail
+          for public_file in app/public/paymo-*.js; do
+            base="$(basename "$public_file")"
+            if [ -f "$base" ]; then
+              cmp -s "$base" "$public_file" || {
+                echo "Mirror mismatch: $base <-> $public_file"
+                exit 1
+              }
+            fi
+          done
+
+      - name: Verify interaction-fix contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          fix='app/public/paymo-integrity-fixes.js'
+          grep -q 'primeLegacyHistoryTargets' "$fix"
+          grep -q 'paymoActiveHistoryExpenseId' "$fix"
+          grep -q 'history-delete-confirm-backdrop{z-index:950' "$fix"
+          grep -q "paymo-expenses-updated" "$fix"
+          grep -q "x-paymo-key" "$fix"
+          grep -q "authorization" "$fix"
+          grep -q "sameAmountAndDate" "$fix"
+          grep -q "String(expense?.payee || '') === payee" "$fix"
+          grep -q '/paymo-integrity-fixes.js' functions/_middleware.js
+
+      - name: Verify production picked up integrity bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(sha256sum app/public/paymo-integrity-fixes.js | awk '{print $1}')"
+          for i in $(seq 1 30); do
+            ts="$(date +%s)"
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/paymo-integrity-fixes.js?ts=$ts" -o /tmp/paymo-integrity-fixes.js || true
+            curl -fsSL --max-time 10 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?ts=$ts" -o /tmp/paymo-index.html || true
+            auth_status="$(curl -sS --max-time 10 -o /tmp/paymo-me.json -w '%{http_code}' -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/api/me?ts=$ts" || true)"
+            if [ -s /tmp/paymo-integrity-fixes.js ] && [ -s /tmp/paymo-index.html ]; then
+              actual="$(sha256sum /tmp/paymo-integrity-fixes.js | awk '{print $1}')"
+              if [ "$actual" = "$expected" ] \
+                && grep -q '/paymo-integrity-fixes.js' /tmp/paymo-index.html \
+                && grep -q 'paymoIntegrityStatus' /tmp/paymo-integrity-fixes.js \
+                && [ "$auth_status" = '401' ]; then
+                echo 'Paymo production integrity checks passed.'
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo 'Paymo production integrity bundle is not current.'
+          exit 1
