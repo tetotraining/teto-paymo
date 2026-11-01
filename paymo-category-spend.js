@@ -7,6 +7,7 @@
   const billingDateOf=e=>String(e?.date||'').slice(0,10);
   const payeeOf=e=>String(e?.payee||e?.item||e?.name||'その他');
   const amountOf=e=>Number(e?.amount||0);
+  const isPaid=e=>e?.paid===true||e?.paid===1||e?.paid==='1';
   const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const formatDate=value=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return '日付なし';const [y,m,d]=value.split('-');return `${y}/${Number(m)}/${Number(d)}`};
 
@@ -39,7 +40,7 @@
     const id=escapeHtml(item.expense?.id??'');
     const usage=formatDate(item.date);
     const billing=formatDate(billingDateOf(item.expense));
-    return `<button type="button" class="category-history-row" data-expense-id="${id}"><span class="category-history-dates"><span>利用日：${escapeHtml(usage)}</span><span>請求日：${escapeHtml(billing)}</span></span><b class="category-history-amount">${yen(amountOf(item.expense))}</b></button>`;
+    return `<button type="button" class="category-history-row ${isPaid(item.expense)?'is-paid':''}" data-expense-id="${id}"><span class="category-history-dates"><span>利用日：${escapeHtml(usage)}</span><span>請求日：${escapeHtml(billing)}</span></span><b class="category-history-amount">${yen(amountOf(item.expense))}</b></button>`;
   }
 
   function render(){
@@ -107,6 +108,7 @@
         .category-history-dates{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;font-weight:700;line-height:1.25;color:var(--theme-muted,#9ca198)}
         .category-history-dates span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .category-history-amount{font-size:18px;font-weight:900;white-space:nowrap}
+        .category-history-row.is-paid .category-history-amount{color:#22a559!important}
         .category-history-peek{height:46px;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.72) 30%,rgba(0,0,0,.25) 65%,transparent 100%)}
         .category-history-peek .category-history-row{height:66px;border-top:1px solid var(--theme-line,#293029)}
         .category-history-empty,.category-spend-empty{padding:18px 0 8px;color:var(--theme-muted,#777);text-align:center;font-size:13px}
