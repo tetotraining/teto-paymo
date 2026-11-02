@@ -1,5 +1,6 @@
 import base from './account-api.js';
 import { handleNotificationFetch, runPaymentNotificationSchedule } from './notification-api.js';
+import { handleMonthlySummaryFetch, runMonthlySummaryNotificationSchedule } from './monthly-summary-api.js';
 
 const encoder = new TextEncoder();
 const b64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -34,6 +35,8 @@ async function deleteAccount(request, env) {
 
   const userId = user.id;
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM monthly_summary_notification_deliveries WHERE user_id=?').bind(userId),
+    env.DB.prepare('DELETE FROM monthly_summary_notification_settings WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM payment_notification_deliveries WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM payment_notification_settings WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id=?').bind(userId),
@@ -53,6 +56,8 @@ export default {
     try {
       const notificationResponse = await handleNotificationFetch(request, env, url);
       if (notificationResponse) return notificationResponse;
+      const monthlySummaryResponse = await handleMonthlySummaryFetch(request, env, url);
+      if (monthlySummaryResponse) return monthlySummaryResponse;
     } catch (error) {
       console.error('Paymo notification API error', error);
       return json({ error: '通知設定を処理できませんでした' }, 500);
@@ -70,8 +75,13 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(runPaymentNotificationSchedule(env).catch((error) => {
-      console.error('Paymo scheduled notification error', error);
-    }));
+    ctx.waitUntil(Promise.all([
+      runPaymentNotificationSchedule(env).catch((error) => {
+        console.error('Paymo scheduled payment notification error', error);
+      }),
+      runMonthlySummaryNotificationSchedule(env).catch((error) => {
+        console.error('Paymo scheduled monthly summary notification error', error);
+      })
+    ]));
   }
 };
