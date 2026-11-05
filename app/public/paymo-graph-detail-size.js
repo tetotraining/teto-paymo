@@ -7,7 +7,7 @@
     #paymoGraphDetail .paymo-graph-detail-month{font-size:20px!important}
     #paymoGraphDetail .paymo-graph-detail-total{font-size:30px!important}
     #paymoGraphDetail .paymo-graph-detail-group-name{font-size:20px!important}
-    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-group-name{display:none!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-group-head{display:none!important}
     #paymoGraphDetail .paymo-graph-detail-group-total{font-size:18px!important}
     #paymoGraphDetail .paymo-graph-detail-columns,
     #paymoGraphDetail .paymo-graph-detail-row{
