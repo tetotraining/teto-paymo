@@ -56,7 +56,7 @@
     });
     const order = orderedNames(new Set(groups.keys()));
     return order.map((name) => {
-      const rows = groups.get(name).sort((a, b) => (descending ? b.amount - a.amount : a.amount - b.amount) || String(b.date).localeCompare(String(a.date)) || b.index - a.index);
+      const rows = groups.get(name).sort((a, b) => (descending ? String(b.date).localeCompare(String(a.date)) : String(a.date).localeCompare(String(b.date))) || (descending ? b.index - a.index : a.index - b.index));
       return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
     }).sort((a, b) => (descending ? b.total - a.total : a.total - b.total) || order.indexOf(a.name) - order.indexOf(b.name));
   }
@@ -73,7 +73,7 @@
     });
     return Array.from(groups, ([date, rows]) => ({
       date,
-      rows: rows.sort((a, b) => (descending ? b.amount - a.amount : a.amount - b.amount) || (descending ? b.index - a.index : a.index - b.index)),
+      rows: rows.sort((a, b) => descending ? b.index - a.index : a.index - b.index),
       total: rows.reduce((sum, row) => sum + row.amount, 0)
     })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
@@ -195,7 +195,7 @@
     const descending = dateGrouped ? options.dateDescending !== false : options.itemDescending !== false;
     const nextSortLabel = dateGrouped
       ? descending ? '古い日付順に並び替え' : '新しい日付順に並び替え'
-      : descending ? '合計額が少ない順に並び替え' : '合計額が多い順に並び替え';
+      : descending ? '合計額の少ない順・明細を利用日の古い順に並び替え' : '合計額の多い順・明細を利用日の新しい順に並び替え';
     page.querySelector('#paymoGraphDetailToggleSort').setAttribute('aria-label', nextSortLabel);
     page.querySelector('#paymoGraphDetailTitle').textContent = mode === 'billing' ? '月別支払額' : '支出推移';
     page.querySelector('#paymoGraphDetailMonth').textContent = shortMonth(month);
