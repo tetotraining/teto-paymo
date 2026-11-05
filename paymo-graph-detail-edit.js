@@ -5,6 +5,7 @@
   const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
   const usageDateOf = (expense) => expense?.usageDate || expense?.usage_date || expense?.date || '';
   const isPaid = (expense) => expense?.paid === true || expense?.paid === 1 || expense?.paid === '1';
+  const payeeColor = (name) => PAYEES.find((payee) => payee.name === name)?.color || '#999999';
   const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
