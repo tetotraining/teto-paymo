@@ -8,6 +8,9 @@
     #paymoGraphDetail .paymo-graph-detail-total{font-size:30px!important}
     #paymoGraphDetail .paymo-graph-detail-group-name{font-size:20px!important}
     #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-group-head{display:none!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-group:not(:first-child) .paymo-graph-detail-columns{display:none!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-groups{gap:0!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-group:not(:last-child) .paymo-graph-detail-row:last-child{border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
     #paymoGraphDetail .paymo-graph-detail-group-total{font-size:18px!important}
     #paymoGraphDetail .paymo-graph-detail-columns,
     #paymoGraphDetail .paymo-graph-detail-row{
