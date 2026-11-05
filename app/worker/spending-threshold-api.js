@@ -2,6 +2,7 @@ import { publicKey, sendPush } from './notification-api.js';
 
 const encoder = new TextEncoder();
 const DELAY_MS = 10 * 60 * 1000;
+const DEFAULT_THRESHOLD = 30000;
 const MAX_THRESHOLD = 1_000_000_000_000;
 
 function json(request, data, status = 200) {
@@ -52,6 +53,9 @@ async function monthTotal(db, userId, month) {
 }
 
 async function thresholdSettings(db, userId) {
+  await db.prepare(
+    'INSERT OR IGNORE INTO spending_threshold_settings (user_id,threshold_amount,enabled,updated_at) VALUES (?,?,1,?)'
+  ).bind(userId, DEFAULT_THRESHOLD, Date.now()).run();
   return db.prepare(
     'SELECT threshold_amount,enabled FROM spending_threshold_settings WHERE user_id=?'
   ).bind(userId).first();

@@ -1,5 +1,6 @@
 (() => {
   const ENDPOINT = '/api/spending-threshold-settings';
+  const DEFAULT_THRESHOLD = 30000;
   let loading = false;
   let saving = false;
   let saveQueued = false;
@@ -71,10 +72,10 @@
       '<div class="paymo-notification-row">',
       '<strong>月間の支出額</strong>',
       '<div class="paymo-notification-controls">',
-      '<input id="paymoSpendingThresholdAmount" class="paymo-threshold-input" type="text" inputmode="numeric" autocomplete="off" aria-label="通知する支出額" placeholder="30,000" maxlength="18">',
+      '<input id="paymoSpendingThresholdAmount" class="paymo-threshold-input" type="text" inputmode="numeric" autocomplete="off" aria-label="通知する支出額" placeholder="30,000" value="30,000" maxlength="18">',
       '<span class="paymo-threshold-currency">円</span>',
       '<label class="paymo-switch" aria-label="支出額の通知">',
-      '<input id="paymoSpendingThresholdEnabled" type="checkbox">',
+      '<input id="paymoSpendingThresholdEnabled" type="checkbox" checked>',
       '<span class="paymo-switch-track"></span>',
       '</label></div></div>',
       '<p class="paymo-threshold-note">今月の支出合計額が設定額を超えたら通知します。</p>',
@@ -133,8 +134,8 @@
       const response = await api();
       const amount = document.getElementById('paymoSpendingThresholdAmount');
       const enabled = document.getElementById('paymoSpendingThresholdEnabled');
-      if (amount) amount.value = formatAmount(response.settings?.threshold);
-      if (enabled) enabled.checked = response.settings?.enabled === true;
+      if (amount) amount.value = formatAmount(response.settings?.threshold ?? DEFAULT_THRESHOLD);
+      if (enabled) enabled.checked = response.settings?.enabled !== false;
       syncState();
       status('');
     } catch (error) {
