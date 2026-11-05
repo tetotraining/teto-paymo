@@ -2,6 +2,7 @@
   const ENDPOINT = '/api/spending-threshold-settings';
   let loading = false;
   let saving = false;
+  let saveQueued = false;
   const token = () => typeof window.paymoGetAuthToken === 'function'
     ? window.paymoGetAuthToken()
     : localStorage.getItem('paymo_token_v1') || '';
@@ -103,20 +104,26 @@
   }
 
   async function saveSettings() {
-    if (!ensureControls() || saving) return;
-    const threshold = amountOf(document.getElementById('paymoSpendingThresholdAmount')?.value);
-    const enabled = document.getElementById('paymoSpendingThresholdEnabled')?.checked === true;
-    if (enabled && threshold <= 0) return status('1円以上の通知金額を入力してください');
+    if (!ensureControls()) return;
+    if (saving) { saveQueued = true; return; }
     saving = true;
-    status('保存中…');
-    try {
-      await api({ threshold, enabled });
-      status('保存しました');
-    } catch (error) {
-      status(error.message);
-    } finally {
-      saving = false;
-    }
+    do {
+      saveQueued = false;
+      const threshold = amountOf(document.getElementById('paymoSpendingThresholdAmount')?.value);
+      const enabled = document.getElementById('paymoSpendingThresholdEnabled')?.checked === true;
+      if (enabled && threshold <= 0) {
+        status('1円以上の通知金額を入力してください');
+        break;
+      }
+      status('保存中…');
+      try {
+        await api({ threshold, enabled });
+        status('保存しました');
+      } catch (error) {
+        status(error.message);
+      }
+    } while (saveQueued);
+    saving = false;
   }
 
   async function loadSettings() {
