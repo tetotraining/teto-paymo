@@ -2,11 +2,16 @@
   let animationFrame = 0;
 
   function scrollToTopSmooth() {
-    const startY = window.scrollY || document.documentElement.scrollTop || 0;
+    const scroller = document.querySelector('.app');
+    const startY = scroller ? scroller.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+    const setScrollY = (y) => {
+      if (scroller) scroller.scrollTop = y;
+      else window.scrollTo(0, y);
+    };
     if (startY <= 2) return;
 
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      window.scrollTo(0, 0);
+      setScrollY(0);
       return;
     }
 
@@ -17,7 +22,7 @@
     const tick = (now) => {
       const progress = Math.min(1, (now - startedAt) / duration);
       const eased = 1 - Math.pow(1 - progress, 3);
-      window.scrollTo(0, Math.round(startY * (1 - eased)));
+      setScrollY(Math.round(startY * (1 - eased)));
       if (progress < 1) animationFrame = requestAnimationFrame(tick);
       else animationFrame = 0;
     };
