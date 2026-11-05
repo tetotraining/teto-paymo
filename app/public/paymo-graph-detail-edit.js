@@ -64,6 +64,8 @@
       }
       #paymoGraphDetail .paymo-graph-detail-due{text-align:center;color:var(--text,#fff);font-weight:850}
       #paymoGraphDetail .paymo-graph-detail-date{text-align:left;color:var(--muted);font-weight:750}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date{overflow:hidden;text-overflow:ellipsis;color:var(--text,#fff)}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date .dot{margin-right:7px}
       #paymoGraphDetail .paymo-graph-detail-amount-cell{min-width:0;text-align:right}
       #paymoGraphDetail .paymo-graph-detail-amount{
         margin-left:0!important;
@@ -123,31 +125,46 @@
     return rows.sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate)) || b.index - a.index || b.partIndex - a.partIndex);
   }
 
-  function ensureColumnHeader(group) {
+  function ensureColumnHeader(group, dateGrouped = false) {
     let header = group.querySelector('.paymo-graph-detail-columns');
-    if (header) return header;
-    header = document.createElement('div');
-    header.className = 'paymo-graph-detail-columns';
-    header.innerHTML = '<span>利用日</span><span>支払期日</span><span>金額</span>';
-    group.querySelector('.paymo-graph-detail-group-head')?.insertAdjacentElement('afterend', header);
+    if (!header) {
+      header = document.createElement('div');
+      header.className = 'paymo-graph-detail-columns';
+      group.querySelector('.paymo-graph-detail-group-head')?.insertAdjacentElement('afterend', header);
+    }
+    const labels = dateGrouped
+      ? '<span>項目</span><span>支払期日</span><span>金額</span>'
+      : '<span>利用日</span><span>支払期日</span><span>金額</span>';
+    if (header.innerHTML !== labels) header.innerHTML = labels;
     return header;
   }
 
   function annotateRows() {
     if (!selected) return;
+    const page = document.getElementById('paymoGraphDetail');
+    const dateGrouped = selected.mode === 'usage' && page?.dataset.grouping === 'date';
     document.querySelectorAll('#paymoGraphDetail .paymo-graph-detail-group').forEach((group) => {
       const payee = group.querySelector('.paymo-graph-detail-group-name')?.textContent?.trim() || '';
       if (!payee) return;
-      const source = selected.mode === 'billing' ? billingRows(selected.month, payee) : usageRows(selected.month, payee);
-      ensureColumnHeader(group);
+      const source = dateGrouped ? null
+        : selected.mode === 'billing' ? billingRows(selected.month, payee) : usageRows(selected.month, payee);
+      ensureColumnHeader(group, dateGrouped);
       group.querySelectorAll('.paymo-graph-detail-row').forEach((row, index) => {
-        const item = source[index];
+        const expenseIndex = Number(row.dataset.expenseIndex);
+        const expense = dateGrouped && Number.isInteger(expenseIndex) ? expenses[expenseIndex] : null;
+        const item = dateGrouped && expense
+          ? { expense, usageDate: usageDateOf(expense), dueDate: billingPartsOf(expense)[0]?.date || '', amount: Number(expense.amount || 0) }
+          : dateGrouped ? null : source[index];
         if (!item) return;
         const id = item.expense?.id;
         if (id !== undefined && id !== null) row.dataset.expenseId = String(id);
+        else delete row.dataset.expenseId;
         row.classList.toggle('is-paid', isPaid(item.expense));
+        const firstColumn = dateGrouped
+          ? `<i class="dot" style="background:${payeeColor(String(item.expense.payee || 'その他'))}"></i>${escapeHtml(item.expense.payee || 'その他')}`
+          : escapeHtml(shortDate(item.usageDate));
         row.innerHTML = `
-          <span class="paymo-graph-detail-date">${escapeHtml(shortDate(item.usageDate))}</span>
+          <span class="paymo-graph-detail-date">${firstColumn}</span>
           <span class="paymo-graph-detail-due">${escapeHtml(shortDate(item.dueDate))}</span>
           <span class="paymo-graph-detail-amount-cell">
             <span class="paymo-graph-detail-amount">${yen(item.amount)}</span>
@@ -241,6 +258,8 @@
       bindEditorReturnRefresh();
     }
   }, true);
+
+  document.addEventListener('paymo-graph-detail-rendered', () => queueMicrotask(annotateRows));
 
   ensureStyle();
 })();
