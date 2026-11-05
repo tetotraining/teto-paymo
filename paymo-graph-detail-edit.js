@@ -65,8 +65,9 @@
       }
       #paymoGraphDetail .paymo-graph-detail-due{text-align:center;color:var(--text,#fff);font-weight:850}
       #paymoGraphDetail .paymo-graph-detail-date{text-align:left;color:var(--muted);font-weight:750}
-      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date{overflow:hidden;text-overflow:ellipsis;color:var(--text,#fff)}
-      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date .dot{margin-right:7px}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date{color:var(--muted)}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-item{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800;font-size:14px}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-item .dot{margin-right:5px;width:8px;height:8px}
       #paymoGraphDetail .paymo-graph-detail-amount-cell{min-width:0;text-align:right}
       #paymoGraphDetail .paymo-graph-detail-amount{
         margin-left:0!important;
@@ -134,7 +135,7 @@
       group.querySelector('.paymo-graph-detail-group-head')?.insertAdjacentElement('afterend', header);
     }
     const labels = dateGrouped
-      ? '<span>項目</span><span>支払期日</span><span>金額</span>'
+      ? '<span>支出日</span><span>支払期日</span><span>項目名</span><span>金額</span>'
       : '<span>利用日</span><span>支払期日</span><span>金額</span>';
     if (header.innerHTML !== labels) header.innerHTML = labels;
     return header;
@@ -161,12 +162,15 @@
         if (id !== undefined && id !== null) row.dataset.expenseId = String(id);
         else delete row.dataset.expenseId;
         row.classList.toggle('is-paid', isPaid(item.expense));
-        const firstColumn = dateGrouped
-          ? `<i class="dot" style="background:${payeeColor(String(item.expense.payee || 'その他'))}"></i>${escapeHtml(item.expense.payee || 'その他')}`
-          : escapeHtml(shortDate(item.usageDate));
+        const dateCell = `<span class="paymo-graph-detail-date">${escapeHtml(shortDate(item.usageDate))}</span>`;
+        const dueCell = `<span class="paymo-graph-detail-due">${escapeHtml(shortDate(item.dueDate))}</span>`;
+        const itemCell = dateGrouped
+          ? `<span class="paymo-graph-detail-item"><i class="dot" style="background:${payeeColor(String(item.expense.payee || 'その他'))}"></i>${escapeHtml(item.expense.payee || 'その他')}</span>`
+          : '';
         row.innerHTML = `
-          <span class="paymo-graph-detail-date">${firstColumn}</span>
-          <span class="paymo-graph-detail-due">${escapeHtml(shortDate(item.dueDate))}</span>
+          ${dateCell}
+          ${dueCell}
+          ${itemCell}
           <span class="paymo-graph-detail-amount-cell">
             <span class="paymo-graph-detail-amount">${yen(item.amount)}</span>
             ${selected.mode === 'usage' && isPaid(item.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
