@@ -111,7 +111,8 @@
       .paymo-graph-detail-actions[hidden]{display:none!important}
       .paymo-graph-detail-action{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:0;border-radius:11px;background:transparent;color:var(--accent,#B9F486);font:inherit;font-size:23px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .paymo-graph-detail-action:active{background:var(--surface,#101310)}
-      .paymo-graph-detail-rotate-icon{display:block;flex:none;width:25px;height:25px;overflow:visible}
+      #paymoGraphDetailToggleView{color:var(--page-fg,#fff)}
+      .paymo-graph-detail-rotate-icon{display:block;flex:none;width:28px;height:28px;overflow:visible}
       .paymo-graph-detail-action:focus-visible{outline:2px solid var(--accent,#B9F486);outline-offset:1px}
       .paymo-graph-detail-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(28px + env(safe-area-inset-bottom));scrollbar-width:none}
       .paymo-graph-detail-body::-webkit-scrollbar{display:none}
@@ -148,7 +149,7 @@
         <button type="button" id="paymoGraphDetailBack" class="paymo-graph-detail-back">‹ 戻る</button>
         <div id="paymoGraphDetailTitle" class="paymo-graph-detail-title">履歴</div>
         <div id="paymoGraphDetailActions" class="paymo-graph-detail-actions" hidden>
-          <button type="button" id="paymoGraphDetailToggleView" class="paymo-graph-detail-action" aria-label="支出日別表示に切り替え" title="表示切替"><svg class="paymo-graph-detail-rotate-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 11a9 9 0 1 1-2.7-6.4"/><path d="M21 3v6h-6"/></svg></button>
+          <button type="button" id="paymoGraphDetailToggleView" class="paymo-graph-detail-action" aria-label="支出日別表示に切り替え" title="表示切替"><svg class="paymo-graph-detail-rotate-icon" viewBox="0 0 64 64" width="28" height="28" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="5.8" stroke-linecap="round"><path d="M11.8 25.4C15.2 14.1 22.6 9.4 32.2 9.4C41.9 9.4 49 15.2 51.5 23.6"/><path d="M52.2 38.4C49 49.8 41.6 54.7 32 54.7C22.1 54.7 15.1 49 12.3 40.6"/></g><g fill="currentColor" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"><path d="M44.5 27.3 56.4 21.6 53.8 33.5Z"/><path d="M7.8 42.5 10.5 31.3 21.5 38.1Z"/></g></svg></button>
           <button type="button" id="paymoGraphDetailToggleSort" class="paymo-graph-detail-action" aria-label="少ない順に並び替え" title="並び順">⇅</button>
         </div>
       </div>
