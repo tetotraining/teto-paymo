@@ -43,7 +43,7 @@
     return [...known, ...rest];
   }
 
-  function usageGroups(month) {
+  function usageGroups(month, descending = true) {
     const groups = new Map();
     expenses.forEach((expense, index) => {
       const date = usageDateOf(expense);
@@ -54,10 +54,28 @@
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push({ expense, index, date, amount });
     });
-    return orderedNames(new Set(groups.keys())).map((name) => {
+    const order = orderedNames(new Set(groups.keys()));
+    return order.map((name) => {
       const rows = groups.get(name).sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index);
       return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
+    }).sort((a, b) => (descending ? b.total - a.total : a.total - b.total) || order.indexOf(a.name) - order.indexOf(b.name));
+  }
+
+  function usageDateGroups(month, descending = true) {
+    const groups = new Map();
+    expenses.forEach((expense, index) => {
+      const date = usageDateOf(expense);
+      if (!validDate(date) || ym(date) !== month) return;
+      const amount = Number(expense.amount || 0);
+      if (!amount) return;
+      if (!groups.has(date)) groups.set(date, []);
+      groups.get(date).push({ expense, index, date, amount });
     });
+    return Array.from(groups, ([date, rows]) => ({
+      date,
+      rows: rows.sort((a, b) => b.index - a.index),
+      total: rows.reduce((sum, row) => sum + row.amount, 0)
+    })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
 
   function billingGroups(month) {
@@ -86,9 +104,14 @@
       .paymo-graph-detail{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;background:var(--page-bg,#000);color:var(--text,#fff);transform:translate3d(100%,0,0);transition:transform 260ms cubic-bezier(.22,.72,.24,1);will-change:transform;visibility:hidden;overflow:hidden}
       .paymo-graph-detail.is-visible{visibility:visible}
       .paymo-graph-detail.is-open{transform:translate3d(0,0,0)}
-      .paymo-graph-detail-head{flex:0 0 auto;display:grid;grid-template-columns:72px minmax(0,1fr) 72px;align-items:center;min-height:54px;padding:calc(env(safe-area-inset-top) + 6px) 16px 6px;border-bottom:1px solid var(--line);background:var(--page-bg,#000)}
+      .paymo-graph-detail-head{flex:0 0 auto;display:grid;grid-template-columns:96px minmax(0,1fr) 96px;align-items:center;min-height:54px;padding:calc(env(safe-area-inset-top) + 6px) 16px 6px;border-bottom:1px solid var(--line);background:var(--page-bg,#000)}
       .paymo-graph-detail-back{justify-self:start;border:0;padding:8px 8px 8px 0;background:transparent;color:var(--accent,#E085FF);font:inherit;font-size:15px;font-weight:800}
       .paymo-graph-detail-title{min-width:0;text-align:center;font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .paymo-graph-detail-actions{display:flex;align-items:center;justify-content:flex-end;gap:2px}
+      .paymo-graph-detail-actions[hidden]{display:none!important}
+      .paymo-graph-detail-action{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:0;border-radius:11px;background:transparent;color:var(--accent,#B9F486);font:inherit;font-size:23px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .paymo-graph-detail-action:active{background:var(--surface,#101310)}
+      .paymo-graph-detail-action:focus-visible{outline:2px solid var(--accent,#B9F486);outline-offset:1px}
       .paymo-graph-detail-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(28px + env(safe-area-inset-bottom));scrollbar-width:none}
       .paymo-graph-detail-body::-webkit-scrollbar{display:none}
       .paymo-graph-detail-summary{display:flex;align-items:baseline;gap:10px;margin-bottom:22px}
@@ -123,7 +146,10 @@
       <div class="paymo-graph-detail-head">
         <button type="button" id="paymoGraphDetailBack" class="paymo-graph-detail-back">‹ 戻る</button>
         <div id="paymoGraphDetailTitle" class="paymo-graph-detail-title">履歴</div>
-        <div></div>
+        <div id="paymoGraphDetailActions" class="paymo-graph-detail-actions" hidden>
+          <button type="button" id="paymoGraphDetailToggleView" class="paymo-graph-detail-action" aria-label="支出日別表示に切り替え" title="表示切替">🔄</button>
+          <button type="button" id="paymoGraphDetailToggleSort" class="paymo-graph-detail-action" aria-label="少ない順に並び替え" title="並び順">⇅</button>
+        </div>
       </div>
       <div class="paymo-graph-detail-body">
         <div class="paymo-graph-detail-summary">
@@ -134,15 +160,41 @@
       </div>`;
     document.body.appendChild(page);
     page.querySelector('#paymoGraphDetailBack')?.addEventListener('click', closePage);
+    page.querySelector('#paymoGraphDetailToggleView')?.addEventListener('click', () => {
+      if (!activeFilter || activeFilter.mode !== 'usage') return;
+      activeFilter.grouping = activeFilter.grouping === 'date' ? 'item' : 'date';
+      renderPage(activeFilter.month, activeFilter.mode);
+      page.querySelector('.paymo-graph-detail-body').scrollTop = 0;
+    });
+    page.querySelector('#paymoGraphDetailToggleSort')?.addEventListener('click', () => {
+      if (!activeFilter || activeFilter.mode !== 'usage') return;
+      const key = activeFilter.grouping === 'date' ? 'dateDescending' : 'itemDescending';
+      activeFilter[key] = !activeFilter[key];
+      renderPage(activeFilter.month, activeFilter.mode);
+      page.querySelector('.paymo-graph-detail-body').scrollTop = 0;
+    });
     bindBackSwipe(page);
     return page;
   }
 
   function renderPage(month, mode = 'usage') {
     const page = ensurePage();
-    const groups = mode === 'billing' ? billingGroups(month) : usageGroups(month);
+    const options = activeFilter?.month === month && activeFilter?.mode === mode ? activeFilter : {};
+    const dateGrouped = mode === 'usage' && options.grouping === 'date';
+    const groups = mode === 'billing'
+      ? billingGroups(month)
+      : dateGrouped ? usageDateGroups(month, options.dateDescending !== false) : usageGroups(month, options.itemDescending !== false);
     const total = groups.reduce((sum, group) => sum + group.total, 0);
 
+    page.dataset.grouping = dateGrouped ? 'date' : 'item';
+    const actions = page.querySelector('#paymoGraphDetailActions');
+    actions.hidden = mode !== 'usage';
+    page.querySelector('#paymoGraphDetailToggleView').setAttribute('aria-label', dateGrouped ? '項目別表示に切り替え' : '支出日別表示に切り替え');
+    const descending = dateGrouped ? options.dateDescending !== false : options.itemDescending !== false;
+    const nextSortLabel = dateGrouped
+      ? descending ? '古い日付順に並び替え' : '新しい日付順に並び替え'
+      : descending ? '合計額が少ない順に並び替え' : '合計額が多い順に並び替え';
+    page.querySelector('#paymoGraphDetailToggleSort').setAttribute('aria-label', nextSortLabel);
     page.querySelector('#paymoGraphDetailTitle').textContent = mode === 'billing' ? '月別支払額' : '支出推移';
     page.querySelector('#paymoGraphDetailMonth').textContent = shortMonth(month);
     page.querySelector('#paymoGraphDetailTotal').textContent = yen(total);
@@ -150,29 +202,29 @@
     const groupsEl = page.querySelector('#paymoGraphDetailGroups');
     if (!groups.length) {
       groupsEl.innerHTML = '<div class="paymo-graph-detail-empty">該当する履歴はありません。</div>';
-      return page;
+    } else {
+      groupsEl.innerHTML = groups.map((group) => `
+        <section class="paymo-graph-detail-group">
+          <div class="paymo-graph-detail-group-head">
+            <div class="paymo-graph-detail-group-name">${dateGrouped ? escapeHtml(formatDate(group.date)) : `<i class="dot" style="background:${payeeColor(group.name)}"></i>${escapeHtml(group.name)}`}</div>
+            <div class="paymo-graph-detail-group-total">${yen(group.total)}</div>
+          </div>
+          <div>
+            ${group.rows.map((row) => `
+              <div class="paymo-graph-detail-row"${dateGrouped ? ` data-expense-index="${row.index}"` : ''}>
+                <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
+                <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
+                ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
+              </div>`).join('')}
+          </div>
+        </section>`).join('');
     }
-
-    groupsEl.innerHTML = groups.map((group) => `
-      <section class="paymo-graph-detail-group">
-        <div class="paymo-graph-detail-group-head">
-          <div class="paymo-graph-detail-group-name"><i class="dot" style="background:${payeeColor(group.name)}"></i>${escapeHtml(group.name)}</div>
-          <div class="paymo-graph-detail-group-total">${yen(group.total)}</div>
-        </div>
-        <div>
-          ${group.rows.map((row) => `
-            <div class="paymo-graph-detail-row">
-              <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
-              <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
-              ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
-            </div>`).join('')}
-        </div>
-      </section>`).join('');
+    document.dispatchEvent(new CustomEvent('paymo-graph-detail-rendered'));
     return page;
   }
 
   function openPage(month, mode = 'usage') {
-    activeFilter = { month, mode };
+    activeFilter = { month, mode, grouping: 'item', itemDescending: true, dateDescending: true };
     const page = renderPage(month, mode);
     page.classList.add('is-visible');
     page.style.transition = 'none';
