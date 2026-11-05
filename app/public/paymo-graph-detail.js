@@ -111,7 +111,7 @@
       .paymo-graph-detail-actions[hidden]{display:none!important}
       .paymo-graph-detail-action{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:0;border-radius:11px;background:transparent;color:var(--accent,#B9F486);font:inherit;font-size:23px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .paymo-graph-detail-action:active{background:var(--surface,#101310)}
-      #paymoGraphDetailToggleView{color:var(--page-fg,#fff)}
+      #paymoGraphDetailToggleView{color:var(--accent,#B9F486)}
       .paymo-graph-detail-rotate-icon{display:block;flex:none;width:28px;height:28px;overflow:visible}
       .paymo-graph-detail-action:focus-visible{outline:2px solid var(--accent,#B9F486);outline-offset:1px}
       .paymo-graph-detail-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px 16px calc(28px + env(safe-area-inset-bottom));scrollbar-width:none}
