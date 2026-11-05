@@ -1,0 +1,80 @@
+name: Deploy Paymo to existing Cloudflare Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/paymo-pages-direct-deploy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check existing Cloudflare deployment credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error::Cloudflare deployment requires CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in GitHub Actions secrets."
+            exit 1
+          fi
+
+      - name: Stage only Paymo public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .pages-output
+          cp index.html favicon.svg manifest.webmanifest sw.js deploy-marker.txt .pages-output/
+          cp paymo-*.js paymo-*.css paymo-icon-*.png .pages-output/
+          cmp paymo-sliding-pill.js app/public/paymo-sliding-pill.js
+          cmp paymo-sliding-pill.css app/public/paymo-sliding-pill.css
+          node --check paymo-sliding-pill.js
+          test -s functions/_middleware.js
+
+      - name: Deploy to existing Cloudflare Pages project
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CI: 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.151.1 pages deploy .pages-output --project-name=teto-paymo --branch=main --commit-hash="${GITHUB_SHA}"
+
+      - name: Verify exact production Sliding Pill JS and CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in paymo-sliding-pill.js paymo-sliding-pill.css; do
+            expected="$(sha256sum ".pages-output/$file" | cut -d' ' -f1)"
+            matched=0
+            for i in $(seq 1 18); do
+              curl --fail --silent --show-error --location --max-time 15 \
+                -H 'Cache-Control: no-cache' \
+                "https://teto-paymo.pages.dev/$file?version=$GITHUB_SHA&try=$i" \
+                --output "/tmp/$file" || true
+              if [ -s "/tmp/$file" ] && [ "$(sha256sum "/tmp/$file" | cut -d' ' -f1)" = "$expected" ]; then
+                matched=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$matched" != 1 ]; then
+              echo "::error::Cloudflare Pages is not serving the new $file."
+              exit 1
+            fi
+          done
+          index="$(curl --fail --silent --show-error --location --max-time 15 -H 'Cache-Control: no-cache' "https://teto-paymo.pages.dev/?version=$GITHUB_SHA")"
+          echo "$index" | grep -q '/paymo-sliding-pill.js'
+          echo "$index" | grep -q '/paymo-sliding-pill.css'
+          echo "VERIFIED: production serves exact Sliding Pill JS and CSS."
