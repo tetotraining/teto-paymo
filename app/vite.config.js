@@ -33,6 +33,8 @@ export default defineConfig({
         if (!next.includes('/paymo-bulk-history-delete.js')) next=next.replace('</body>', '<script src="/paymo-bulk-history-delete.js"></script>\n</body>');
         if (!next.includes('/paymo-graph-detail-edit.js')) next=next.replace('</body>', '<script src="/paymo-graph-detail-edit.js"></script>\n</body>');
         if (!next.includes('/paymo-graph-detail-size.js')) next=next.replace('</body>', '<script src="/paymo-graph-detail-size.js"></script>\n</body>');
+        if (!next.includes('/paymo-sliding-pill.css')) next=next.replace('</head>', '<link rel="stylesheet" href="/paymo-sliding-pill.css">\n</head>');
+        if (!next.includes('/paymo-sliding-pill.js')) next=next.replace('</body>', '<script src="/paymo-sliding-pill.js"></script>\n</body>');
         return next;
       }
     }

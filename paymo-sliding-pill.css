@@ -1,0 +1,57 @@
+/* Paymo Sliding Pill — isolated from existing navigation styling.
+   Remove the JS + CSS references to restore the previous bottom menu. */
+.bottom-nav.paymo-sliding-nav {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.bottom-nav.paymo-sliding-nav > .paymo-sliding-pill {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: calc(20% - 8px);
+  height: 76px;
+  max-width: 84px;
+  box-sizing: border-box;
+  border-radius: 22px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--surface, #101310);
+  background: color-mix(in srgb, var(--accent, #B9F486) 20%, var(--surface, #101310));
+  border: 1px solid var(--accent, #B9F486);
+  border: 1px solid color-mix(in srgb, var(--accent, #B9F486) 38%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent, #B9F486) 9%, transparent);
+  will-change: left;
+}
+.bottom-nav.paymo-sliding-nav > .nav-btn {
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.bottom-nav.paymo-sliding-nav > .nav-btn::after {
+  content: none !important;
+  display: none !important;
+}
+.bottom-nav.paymo-sliding-nav > .nav-btn .paymo-pill-label {
+  display: block;
+  max-width: 100%;
+  flex: 0 0 auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  font-size: clamp(10px, 2.6vw, 12px);
+  line-height: 14px;
+  font-weight: 500;
+  color: inherit;
+  pointer-events: none;
+}
+.bottom-nav.paymo-sliding-nav > .nav-btn.active .paymo-pill-label {
+  font-weight: 750;
+}
+.bottom-nav.paymo-sliding-nav > .add-btn {
+  position: relative;
+  z-index: 2;
+}

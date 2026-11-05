@@ -62,6 +62,8 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-category-detail.js')) html = html.replace('</body>', '<script src="/paymo-category-detail.js"></script>\n</body>');
   if (!html.includes('/paymo-category-billing-summary.js')) html = html.replace('</body>', '<script src="/paymo-category-billing-summary.js"></script>\n</body>');
   if (!html.includes('/paymo-integrity-fixes.js')) html = html.replace('</body>', '<script src="/paymo-integrity-fixes.js"></script>\n</body>');
+  if (!html.includes('/paymo-sliding-pill.css')) html = html.replace('</head>', '<link rel="stylesheet" href="/paymo-sliding-pill.css">\n</head>');
+  if (!html.includes('/paymo-sliding-pill.js')) html = html.replace('</body>', '<script src="/paymo-sliding-pill.js"></script>\n</body>');
 
   const themeReloadScript = `<script id="paymo-theme-reload-sync">(()=>{let reloading=false;document.addEventListener('change',(event)=>{if(event.target?.id!=='paymoDarkModeToggle'||window.navigator.standalone!==true||reloading)return;reloading=true;try{sessionStorage.setItem('paymo_theme_reload','1')}catch(_){}window.location.reload()});const restore=()=>{if(!document.documentElement.hasAttribute('data-theme-reload'))return;const open=()=>{document.querySelector('.nav-btn[data-view="menu"]')?.click();requestAnimationFrame(()=>{document.getElementById('openDesignSettings')?.click();document.getElementById('paymoLaunchSplash')?.remove();document.documentElement.removeAttribute('data-theme-reload')})};if(document.readyState==='complete')open();else window.addEventListener('load',open,{once:true})};restore()})();</script>`;
   if (!html.includes('paymo-theme-reload-sync')) html = html.replace('</body>', `${themeReloadScript}\n</body>`);
