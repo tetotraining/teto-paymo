@@ -43,7 +43,7 @@
   function syncState() {
     const enabled = document.getElementById('paymoSpendingThresholdEnabled');
     const amount = document.getElementById('paymoSpendingThresholdAmount');
-    if (amount && enabled) amount.disabled = !enabled.checked;
+    if (amount && enabled) amount.setAttribute('aria-label', '通知する支出額（円）');
   }
 
   function ensureControls() {
@@ -70,7 +70,7 @@
       '<div class="paymo-notification-row">',
       '<strong>月間の支出額</strong>',
       '<div class="paymo-notification-controls">',
-      '<input id="paymoSpendingThresholdAmount" class="paymo-threshold-input" type="text" inputmode="numeric" autocomplete="off" aria-label="通知する支出額" placeholder="30,000" maxlength="15" disabled>',
+      '<input id="paymoSpendingThresholdAmount" class="paymo-threshold-input" type="text" inputmode="numeric" autocomplete="off" aria-label="通知する支出額" placeholder="30,000" maxlength="18">',
       '<span class="paymo-threshold-currency">円</span>',
       '<label class="paymo-switch" aria-label="支出額の通知">',
       '<input id="paymoSpendingThresholdEnabled" type="checkbox">',
@@ -98,8 +98,6 @@
       syncState();
       saveSettings();
     });
-    // Permit setting the amount before enabling the toggle.
-    input?.addEventListener('focus', () => { if (input.disabled) input.disabled = false; });
     syncState();
     return true;
   }
