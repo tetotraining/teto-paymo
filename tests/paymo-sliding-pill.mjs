@@ -13,7 +13,7 @@ const labels={home:'ホーム',graph:'グラフ',categorySpend:'項目別履歴'
 const icon='<svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/></svg>';
 const button=id=>'<button class="nav-btn'+(id==='home'?' active':'')+'" data-view="'+id+'" aria-label="'+labels[id]+'">'+icon+'</button>';
 const html=[
- '<!doctype html><html lang="ja"><head><style>',
+ '<!doctype html><html lang="ja"><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>',
  ':root{--accent:#B9F486;--surface:#101310;--theme-muted:#9ca198}*{box-sizing:border-box}',
  'body{margin:0;background:#050605;color:#f5f5f3}.app{height:100dvh;overflow-y:auto;overflow-x:hidden}',
  '.view{display:none;min-height:1500px}.view.active{display:block}',
