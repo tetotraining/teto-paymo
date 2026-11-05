@@ -56,7 +56,7 @@
     });
     const order = orderedNames(new Set(groups.keys()));
     return order.map((name) => {
-      const rows = groups.get(name).sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index);
+      const rows = groups.get(name).sort((a, b) => (descending ? b.amount - a.amount : a.amount - b.amount) || String(b.date).localeCompare(String(a.date)) || b.index - a.index);
       return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
     }).sort((a, b) => (descending ? b.total - a.total : a.total - b.total) || order.indexOf(a.name) - order.indexOf(b.name));
   }
@@ -73,7 +73,7 @@
     });
     return Array.from(groups, ([date, rows]) => ({
       date,
-      rows: rows.sort((a, b) => b.index - a.index),
+      rows: rows.sort((a, b) => (descending ? b.amount - a.amount : a.amount - b.amount) || (descending ? b.index - a.index : a.index - b.index)),
       total: rows.reduce((sum, row) => sum + row.amount, 0)
     })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
@@ -213,7 +213,7 @@
           </div>
           <div>
             ${group.rows.map((row) => `
-              <div class="paymo-graph-detail-row"${dateGrouped ? ` data-expense-index="${row.index}"` : ''}>
+              <div class="paymo-graph-detail-row"${mode === 'usage' ? ` data-expense-index="${row.index}"` : ''}>
                 <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
                 <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
                 ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
