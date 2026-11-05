@@ -21,6 +21,24 @@
     #paymoGraphDetail .paymo-graph-detail-columns span:last-child{text-align:right!important}
     #paymoGraphDetail .paymo-graph-detail-amount{font-size:17px!important}
     #paymoGraphDetail .paymo-graph-detail-paid{display:none!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-columns,
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-row{
+      grid-template-columns:48px 62px minmax(0,1fr) 94px!important;
+      column-gap:6px!important;
+    }
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-columns span:nth-child(3){text-align:left!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-date,
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-due{font-size:12px!important}
+    #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-amount{font-size:15px!important}
+    @media (max-width:360px){
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-columns,
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-row{
+        grid-template-columns:43px 57px minmax(0,1fr) 84px!important;
+        column-gap:5px!important;
+      }
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-item{font-size:12px!important}
+      #paymoGraphDetail[data-grouping="date"] .paymo-graph-detail-amount{font-size:14px!important}
+    }
   `;
   document.head.appendChild(style);
 
