@@ -39,6 +39,7 @@ export async function onRequest(context) {
   if (!html.includes('/paymo-design.js')) html = html.replace('</body>', '<script src="/paymo-design.js"></script>\n</body>');
   if (!html.includes('/paymo-notifications.js')) html = html.replace('</body>', '<script src="/paymo-notifications.js"></script>\n</body>');
   if (!html.includes('/paymo-monthly-summary-notifications.js')) html = html.replace('</body>', '<script src="/paymo-monthly-summary-notifications.js"></script>\n</body>');
+  if (!html.includes('/paymo-spending-threshold.js')) html = html.replace('</body>', '<script src="/paymo-spending-threshold.js"></script>\n</body>');
   if (!html.includes('/paymo-ios-theme-sync.js')) html = html.replace('</body>', '<script src="/paymo-ios-theme-sync.js"></script>\n</body>');
   if (!html.includes('/paymo-items.js')) html = html.replace('</body>', '<script src="/paymo-items.js"></script>\n</body>');
   if (!html.includes('/paymo-settings-watch.js')) html = html.replace('</body>', '<script src="/paymo-settings-watch.js"></script>\n</body>');

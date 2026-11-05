@@ -73,7 +73,7 @@ async function ensureSettings(db, userId) {
   ).bind(userId).first();
 }
 
-async function publicKey(db) {
+export async function publicKey(db) {
   const row = await db.prepare("SELECT value FROM system_config WHERE key='vapid_public_key'").first();
   return row?.value || null;
 }
@@ -219,7 +219,7 @@ function yen(value) {
   return `¥${Math.round(Number(value || 0)).toLocaleString('ja-JP')}`;
 }
 
-async function sendPush(env, userId, message, vapidPublicKey) {
+export async function sendPush(env, userId, message, vapidPublicKey) {
   if (!env.VAPID_PRIVATE_KEY || !vapidPublicKey) return false;
   const result = await env.DB.prepare(
     'SELECT endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=?'

@@ -1,6 +1,7 @@
 import base from './account-api.js';
 import { handleNotificationFetch, runPaymentNotificationSchedule } from './notification-api.js';
 import { handleMonthlySummaryFetch, runMonthlySummaryNotificationSchedule } from './monthly-summary-api.js';
+import { handleSpendingThresholdFetch, reconcileSpendingAfterExpenseMutation, runSpendingThresholdSchedule } from './spending-threshold-api.js';
 
 const encoder = new TextEncoder();
 const b64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -35,6 +36,8 @@ async function deleteAccount(request, env) {
 
   const userId = user.id;
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM spending_threshold_events WHERE user_id=?').bind(userId),
+    env.DB.prepare('DELETE FROM spending_threshold_settings WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM monthly_summary_notification_deliveries WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM monthly_summary_notification_settings WHERE user_id=?').bind(userId),
     env.DB.prepare('DELETE FROM payment_notification_deliveries WHERE user_id=?').bind(userId),
@@ -58,6 +61,8 @@ export default {
       if (notificationResponse) return notificationResponse;
       const monthlySummaryResponse = await handleMonthlySummaryFetch(request, env, url);
       if (monthlySummaryResponse) return monthlySummaryResponse;
+      const spendingThresholdResponse = await handleSpendingThresholdFetch(request, env, url);
+      if (spendingThresholdResponse) return spendingThresholdResponse;
     } catch (error) {
       console.error('Paymo notification API error', error);
       return json({ error: '通知設定を処理できませんでした' }, 500);
@@ -71,7 +76,14 @@ export default {
         return json({ error: 'アカウントを削除できませんでした' }, 500);
       }
     }
-    return base.fetch(request, env, ctx);
+    const response = await base.fetch(request, env, ctx);
+    const isExpenseMutation = (request.method === 'POST' && url.pathname === '/api/expenses') ||
+      (request.method === 'DELETE' && url.pathname.startsWith('/api/expenses/'));
+    if (response.ok && isExpenseMutation) {
+      try { await reconcileSpendingAfterExpenseMutation(request, env); }
+      catch (error) { console.error('Paymo spending threshold reconcile error', error); }
+    }
+    return response;
   },
 
   async scheduled(controller, env, ctx) {
@@ -81,6 +93,9 @@ export default {
       }),
       runMonthlySummaryNotificationSchedule(env).catch((error) => {
         console.error('Paymo scheduled monthly summary notification error', error);
+      }),
+      runSpendingThresholdSchedule(env).catch((error) => {
+        console.error('Paymo scheduled spending threshold error', error);
       })
     ]));
   }
