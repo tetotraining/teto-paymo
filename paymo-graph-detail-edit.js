@@ -148,15 +148,14 @@
     document.querySelectorAll('#paymoGraphDetail .paymo-graph-detail-group').forEach((group) => {
       const payee = group.querySelector('.paymo-graph-detail-group-name')?.textContent?.trim() || '';
       if (!payee) return;
-      const source = dateGrouped ? null
-        : selected.mode === 'billing' ? billingRows(selected.month, payee) : usageRows(selected.month, payee);
+      const source = selected.mode === 'billing' ? billingRows(selected.month, payee) : null;
       ensureColumnHeader(group, dateGrouped);
       group.querySelectorAll('.paymo-graph-detail-row').forEach((row, index) => {
         const expenseIndex = Number(row.dataset.expenseIndex);
-        const expense = dateGrouped && Number.isInteger(expenseIndex) ? expenses[expenseIndex] : null;
-        const item = dateGrouped && expense
+        const expense = selected.mode === 'usage' && Number.isInteger(expenseIndex) ? expenses[expenseIndex] : null;
+        const item = expense
           ? { expense, usageDate: usageDateOf(expense), dueDate: billingPartsOf(expense)[0]?.date || '', amount: Number(expense.amount || 0) }
-          : dateGrouped ? null : source[index];
+          : source?.[index];
         if (!item) return;
         const id = item.expense?.id;
         if (id !== undefined && id !== null) row.dataset.expenseId = String(id);
