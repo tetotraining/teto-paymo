@@ -77,7 +77,7 @@
       '<input id="paymoSpendingThresholdEnabled" type="checkbox">',
       '<span class="paymo-switch-track"></span>',
       '</label></div></div>',
-      '<p class="paymo-threshold-note">今月の支出合計（利用日ベース）が設定額を超えたら通知します。通知は10分後（固定）、月に1回です。</p>',
+      '<p class="paymo-threshold-note">今月の支出合計額が設定額を超えたら通知します。</p>',
       '</div>',
       '<small id="paymoSpendingThresholdStatus" class="paymo-notification-save-status"></small>'
     ].join('');
