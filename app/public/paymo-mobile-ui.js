@@ -25,7 +25,22 @@
       }
       html,body{
         touch-action:pan-x pan-y;
-        overscroll-behavior-x:none;
+        overscroll-behavior:none;
+        height:100%;
+        overflow:hidden!important;
+      }
+      .app{
+        height:100dvh;
+        min-height:100dvh;
+        overflow-y:auto;
+        overflow-x:hidden;
+        overscroll-behavior-y:none;
+        -webkit-overflow-scrolling:touch;
+      }
+      .bottom-nav{
+        position:fixed!important;
+        bottom:0!important;
+        overscroll-behavior:none;
       }
       .paymo-swipe-front{
         position:relative!important;
