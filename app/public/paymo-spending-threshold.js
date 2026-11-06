@@ -154,7 +154,8 @@
     // navigating away. Input is saved locally first, then synced to the API.
     input?.addEventListener('input', () => {
       clearTimeout(inputTimer);
-      inputTimer = setTimeout(saveSettings, SAVE_DEBOUNCE_MS);
+      saveSettings(false); // retain the entered amount immediately, including before blur
+      inputTimer = setTimeout(syncPending, SAVE_DEBOUNCE_MS);
     });
     input?.addEventListener('change', () => {
       clearTimeout(inputTimer);
@@ -170,7 +171,7 @@
 
   // Persist the user's latest choice synchronously, independent of the
   // network. Pending changes must never be overwritten by a stale GET.
-  function saveSettings() {
+  function saveSettings(sync = true) {
     if (!ensureControls()) return;
     const settings = settingsFromView();
     if (!normalized(settings) || (settings.enabled && settings.threshold === 0)) {
@@ -189,7 +190,7 @@
       return;
     }
     status('この端末に保存しました。通知サーバーへの反映を確認中…');
-    syncPending();
+    if (sync) syncPending();
   }
 
   async function syncPending() {
