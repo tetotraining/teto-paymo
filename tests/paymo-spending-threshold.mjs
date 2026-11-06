@@ -19,9 +19,9 @@ const html='<!doctype html><html lang="ja"><head><meta name="viewport" content="
 '<script src="/paymo-spending-threshold.js"></script></body></html>';
 await page.route('**/*',async route=>{
   const url=new URL(route.request().url());
-  if(url.pathname==='/')return route.fulfill({status:200,contentType:'text/html',body:html});
+  if(url.pathname==='/')return route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:html});
   if(url.pathname==='/paymo-spending-threshold.js')
-    return route.fulfill({status:200,contentType:'application/javascript',body:js});
+    return route.fulfill({status:200,contentType:'application/javascript; charset=utf-8',body:js});
   if(url.pathname==='/api/spending-threshold-settings'){
     if(!apiOnline)return route.fulfill({status:404,contentType:'application/json',body:'{"error":"not found"}'});
     if(route.request().method()==='POST'){
@@ -53,8 +53,6 @@ try{
   const immediate=await read();
   assert.equal(immediate?.threshold,55000,'immediate local save while typing');
   assert.equal(immediate?.pending,true,'pending state retained');
-  await sleep(850);
-  console.log('DEBUG status='+JSON.stringify(await page.locator('#paymoSpendingThresholdStatus').innerText())+' cache='+JSON.stringify(await read())+' authenticated='+JSON.stringify(await page.evaluate(()=>({token:window.paymoGetAuthToken(),user:window.paymoCurrentUser}))));
   await page.waitForFunction(() => document.getElementById('paymoSpendingThresholdStatus')?.textContent.includes('未反映'), null, {timeout:3500});
   const offlineText=await page.locator('#paymoSpendingThresholdStatus').innerText();
   assert.ok(offlineText.includes('未反映'),'server failure clearly marked');
