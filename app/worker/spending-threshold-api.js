@@ -12,6 +12,7 @@ function json(request, data, status = 200) {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
+      'x-paymo-spending-threshold-api': '1',
       'access-control-allow-origin': origin === 'https://teto-paymo.pages.dev' ? origin : 'https://teto-paymo.pages.dev',
       'access-control-allow-methods': 'GET,POST,OPTIONS',
       'access-control-allow-headers': 'authorization,content-type',
@@ -102,6 +103,16 @@ async function reconcile(db, userId, now = Date.now()) {
 
 export async function handleSpendingThresholdFetch(request, env, url) {
   if (url.pathname !== '/api/spending-threshold-settings') return null;
+  if (request.method === 'OPTIONS') return new Response(null, {
+    status: 204,
+    headers: {
+      'access-control-allow-origin': 'https://teto-paymo.pages.dev',
+      'access-control-allow-methods': 'GET,POST,OPTIONS',
+      'access-control-allow-headers': 'authorization,content-type',
+      'access-control-max-age': '86400',
+      'x-paymo-spending-threshold-api': '1'
+    }
+  });
   if (!env.DB) return json(request, { error: 'D1 binding DB is not configured' }, 503);
   const userId = await authenticatedUserId(request, env.DB);
   if (!userId) return json(request, { error: '未ログインです' }, 401);

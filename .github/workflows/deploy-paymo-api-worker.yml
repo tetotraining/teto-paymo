@@ -1,0 +1,116 @@
+name: Deploy Paymo spending alert API Worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-paymo-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check required Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAYMO_D1_DATABASE_ID: ${{ secrets.PAYMO_D1_DATABASE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ] || [ -z "${PAYMO_D1_DATABASE_ID:-}" ]; then
+            echo "::error::Configure CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, and PAYMO_D1_DATABASE_ID as GitHub Actions secrets before running."
+            exit 1
+          fi
+
+      - name: Install free Cloudflare build tools
+        working-directory: app
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --package-lock=false --ignore-scripts
+          node --check worker/account-api-v2.js
+          node --check worker/spending-threshold-api.js
+          node --check worker/notification-api.js
+
+      - name: Confirm production D1 database and generate isolated Worker config
+        working-directory: app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PAYMO_D1_DATABASE_ID: ${{ secrets.PAYMO_D1_DATABASE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 list --json > /tmp/paymo-d1-databases.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const target = process.env.PAYMO_D1_DATABASE_ID;
+          if (!/^[0-9a-fA-F-]{36}$/.test(target || '')) throw Error('PAYMO_D1_DATABASE_ID is invalid');
+          const list = JSON.parse(fs.readFileSync('/tmp/paymo-d1-databases.json','utf8'));
+          if (!Array.isArray(list)) throw Error('Cannot read D1 database list');
+          const database = list.find(row => row.uuid === target);
+          if (!database) throw Error('Specified D1 database was not found in this Cloudflare account. Nothing changed.');
+          const config = {
+            name: 'paymo-api',
+            main: 'worker/account-api-v2.js',
+            compatibility_date: '2026-10-01',
+            workers_dev: true,
+            triggers: { crons: ['* * * * *'] },
+            d1_databases: [{ binding: 'DB', database_name: database.name, database_id: database.uuid }]
+          };
+          fs.writeFileSync('wrangler.paymo-api.generated.json', JSON.stringify(config,null,2));
+          console.log('Matched existing D1 database; deployment target: paymo-api');
+          NODE
+
+      - name: Apply spending-alert schema only (preserve existing member data)
+        working-directory: app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --yes --config wrangler.paymo-api.generated.json --file migrations/0008_spending_threshold_notifications.sql
+          npx wrangler d1 execute DB --remote --yes --config wrangler.paymo-api.generated.json --file migrations/0009_spending_threshold_defaults.sql
+          echo 'Spending alert D1 schema ready; older tables and records unchanged.'
+
+      - name: Deploy the existing paymo-api Worker (no new service)
+        working-directory: app
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CI: 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config wrangler.paymo-api.generated.json --keep-vars
+
+      - name: Verify published API route (not only the static UI)
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://teto-paymo.pages.dev/api/spending-threshold-settings"
+          matched=0
+          for i in $(seq 1 12); do
+            code="$(curl --silent --show-error --location --max-time 15 --dump-header /tmp/paymo-api-response-headers \
+              --output /tmp/paymo-api-response-body --write-out '%{http_code}' \
+              -H 'Cache-Control: no-cache' "$url?verify=$GITHUB_SHA-$i" || true)"
+            if [ "$code" = '401' ] && grep -iq '^x-paymo-spending-threshold-api: 1' /tmp/paymo-api-response-headers; then
+              matched=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$matched" != 1 ]; then
+            echo "::error::Spending threshold API was not confirmed on the existing Paymo site."
+            exit 1
+          fi
+          echo 'Verified spending threshold API is deployed and requires account authentication.'
