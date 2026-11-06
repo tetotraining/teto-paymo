@@ -1,0 +1,36 @@
+name: Test Paymo Spending Alert Settings
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'paymo-spending-threshold.js'
+      - 'app/public/paymo-spending-threshold.js'
+      - 'tests/paymo-spending-threshold.mjs'
+      - '.github/workflows/paymo-spending-threshold.yml'
+jobs:
+  browser-settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check mirrored files and syntax
+        run: |
+          cmp paymo-spending-threshold.js app/public/paymo-spending-threshold.js
+          node --check paymo-spending-threshold.js
+          node --check tests/paymo-spending-threshold.mjs
+      - name: Install free browser testing runtime
+        run: npm install --no-save --ignore-scripts playwright-core@1.56.1
+      - name: Run browser settings regression
+        run: node tests/paymo-spending-threshold.mjs
+      - name: Check production feature availability (informational)
+        if: always()
+        shell: bash
+        run: |
+          for path in /paymo-spending-threshold.js /api/spending-threshold-settings; do
+            code="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://teto-paymo.pages.dev$path" || true)"
+            echo "production $path HTTP $code"
+          done
