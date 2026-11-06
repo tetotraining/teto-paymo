@@ -23,12 +23,12 @@
 
 Paymoの表示画面はCloudflare Pagesですが、`/api/*`は別の既存Worker `paymo-api` に転送されています。**GitHubのJSを変更しただけでは通知条件をサーバーに保存できません**。通知の設定額を変更したら即座に適用するには、サーバー側の支出額通知APIを本番Workerへ公開する必要があります。
 
-既存アカウント・会員データを維持したまま反映するため、手動実行のGitHub Actions `Deploy Paymo spending alert API Worker` を用意しています。次の3項目をGitHubリポジトリの **Settings → Secrets and variables → Actions → Repository secrets** に安全に設定してください（チャットに貼り付けないでください）。
+既存アカウント・会員データを維持したまま反映するため、手動実行のGitHub Actions `Deploy Paymo spending alert API Worker` を用意しています。次の2項目をGitHubリポジトリの **Settings → Secrets and variables → Actions → Repository secrets** に安全に設定してください（チャットに貼り付けないでください）。
 
 - `CLOUDFLARE_API_TOKEN`：既存CloudflareアカウントでWorkers編集とD1操作に必要な権限を持つAPIトークン
 - `CLOUDFLARE_ACCOUNT_ID`：同アカウントのID
-- `PAYMO_D1_DATABASE_ID`：すでにPaymoが使用しているD1のデータベースID（新しいデータベースを作らない）
+D1のデータベースIDは、既存の `paymo-api` Workerの `DB` バインディングから自動取得します。新しいデータベースは作りません。
 
 設定したらGitHub → Actions → `Deploy Paymo spending alert API Worker` → Run workflow を実行してください。処理では既存D1のIDを照合し、`0008`/`0009`の通知用SQLだけを適用して既存の`paymo-api` Workerを更新します。最後に本番サイトのAPI応答ヘッダーを検査します。WorkerのVAPID秘密鍵はCloudflare側の既存Secretを利用します。**API公開成功後もiPhoneへの実通知は権限・購読・Cron Triggerを別途確認する必要があります。**
 
-上記3項目が未設定の場合、GitHub側からCloudflareにデプロイする権限がないため、**本番適用はできません**。画面内の端末キャッシュは、実際の通知条件を変更しません。
+上記2項目が未設定の場合、GitHub側からCloudflareにデプロイする権限がないため、**本番適用はできません**。画面内の端末キャッシュは、実際の通知条件を変更しません。

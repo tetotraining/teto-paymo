@@ -21,12 +21,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PAYMO_D1_DATABASE_ID: ${{ secrets.PAYMO_D1_DATABASE_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ] || [ -z "${PAYMO_D1_DATABASE_ID:-}" ]; then
-            echo "::error::Configure CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, and PAYMO_D1_DATABASE_ID as GitHub Actions secrets before running."
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as GitHub Actions secrets before running."
             exit 1
           fi
 
@@ -45,19 +44,28 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          PAYMO_D1_DATABASE_ID: ${{ secrets.PAYMO_D1_DATABASE_ID }}
         shell: bash
         run: |
           set -euo pipefail
+          # Read the existing Worker's DB binding, so a different D1 DB can never be selected.
+          curl --fail --silent --show-error --location --max-time 25 \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/paymo-api/settings" \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --output /tmp/paymo-existing-worker-settings.json
           npx wrangler d1 list --json > /tmp/paymo-d1-databases.json
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          const target = process.env.PAYMO_D1_DATABASE_ID;
-          if (!/^[0-9a-fA-F-]{36}$/.test(target || '')) throw Error('PAYMO_D1_DATABASE_ID is invalid');
+          const existing = JSON.parse(fs.readFileSync('/tmp/paymo-existing-worker-settings.json','utf8'));
+          if (!existing.success || !Array.isArray(existing.result?.bindings)) {
+            throw Error('Could not verify existing paymo-api Worker bindings. Nothing changed.');
+          }
+          const binding = existing.result.bindings.find(row => row.type === 'd1' && row.name === 'DB');
+          const target = binding?.database_id || binding?.id;
+          if (!/^[0-9a-fA-F-]{36}$/.test(target || '')) throw Error('Existing paymo-api Worker does not have a valid DB binding.');
           const list = JSON.parse(fs.readFileSync('/tmp/paymo-d1-databases.json','utf8'));
           if (!Array.isArray(list)) throw Error('Cannot read D1 database list');
           const database = list.find(row => row.uuid === target);
-          if (!database) throw Error('Specified D1 database was not found in this Cloudflare account. Nothing changed.');
+          if (!database) throw Error('Existing paymo-api DB was not found in this Cloudflare account. Nothing changed.');
           const config = {
             name: 'paymo-api',
             main: 'worker/account-api-v2.js',
