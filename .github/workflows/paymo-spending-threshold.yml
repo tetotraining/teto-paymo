@@ -34,6 +34,14 @@ jobs:
             code="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://teto-paymo.pages.dev$path" || true)"
             echo "production $path HTTP $code"
           done
+          echo "Testing existing backend route (OPTIONS distinguishes deployed threshold module from legacy API):"
+          threshold_options="$(curl -sS -X OPTIONS -o /tmp/paymo-threshold-options -w '%{http_code}' --max-time 15 https://teto-paymo.pages.dev/api/spending-threshold-settings || true)"
+          echo "threshold OPTIONS HTTP $threshold_options"
+          if [ "$threshold_options" = '204' ]; then
+            echo "::warning::Production API is missing the threshold route; backend Worker requires deployment."
+          elif [ "$threshold_options" = '401' ]; then
+            echo "Threshold route may be installed (authentication required); confirm actual authenticated save separately."
+          fi
           expected="$(sha256sum app/public/paymo-spending-threshold.js | awk '{print $1}')"
           curl -fLsS -H 'Cache-Control: no-cache' --max-time 15 "https://teto-paymo.pages.dev/paymo-spending-threshold.js?revision=$GITHUB_SHA" -o /tmp/paymo-spending-threshold.js || true
           if [ -s /tmp/paymo-spending-threshold.js ]; then
