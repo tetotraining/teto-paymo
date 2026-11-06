@@ -53,7 +53,7 @@ try{
   const immediate=await read();
   assert.equal(immediate?.threshold,55000,'immediate local save while typing');
   assert.equal(immediate?.pending,true,'pending state retained');
-  await sleep(650);
+  await page.waitForFunction(() => document.getElementById('paymoSpendingThresholdStatus')?.textContent.includes('未反映'), null, {timeout:4000});
   const offlineText=await page.locator('#paymoSpendingThresholdStatus').innerText();
   assert.ok(offlineText.includes('未反映'),'server failure clearly marked');
   await page.reload();
