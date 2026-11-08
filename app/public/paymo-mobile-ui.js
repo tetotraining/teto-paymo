@@ -11,12 +11,13 @@
     const style = document.createElement('style');
     style.id = 'paymo-mobile-ui-style';
     style.textContent = `
-      html,body,.sheet,.history-edit-sheet{
+      html,body,.app,.sheet,.history-edit-sheet{
         scrollbar-width:none!important;
         -ms-overflow-style:none!important;
       }
       html::-webkit-scrollbar,
       body::-webkit-scrollbar,
+      .app::-webkit-scrollbar,
       .sheet::-webkit-scrollbar,
       .history-edit-sheet::-webkit-scrollbar{
         display:none!important;
