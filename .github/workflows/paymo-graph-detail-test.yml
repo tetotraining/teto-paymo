@@ -30,3 +30,27 @@ jobs:
         run: npm install --no-save --ignore-scripts playwright-core@1.56.1
       - name: Browser regression for monthly billing vs usage trend
         run: node tests/paymo-billing-graph-detail.mjs
+      - name: Verify the production graph scripts match GitHub
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in paymo-graph-detail.js paymo-graph-detail-edit.js; do
+            expected="$(sha256sum "app/public/$file" | cut -d ' ' -f1)"
+            matched=0
+            for attempt in $(seq 1 12); do
+              if curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' \
+                "https://teto-paymo.pages.dev/$file?build=$GITHUB_SHA&attempt=$attempt" -o "/tmp/$file"; then
+                actual="$(sha256sum "/tmp/$file" | cut -d ' ' -f1)"
+                if [ "$actual" = "$expected" ]; then
+                  matched=1
+                  echo "Production confirmed: $file SHA-256 $actual"
+                  break
+                fi
+              fi
+              sleep 4
+            done
+            if [ "$matched" != 1 ]; then
+              echo "::error::Paymo production graph asset differs: $file"
+              exit 1
+            fi
+          done
