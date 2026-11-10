@@ -144,18 +144,25 @@
   function annotateRows() {
     if (!selected) return;
     const page = document.getElementById('paymoGraphDetail');
-    const dateGrouped = selected.mode === 'usage' && page?.dataset.grouping === 'date';
+    const dateGrouped = page?.dataset.grouping === 'date';
     document.querySelectorAll('#paymoGraphDetail .paymo-graph-detail-group').forEach((group) => {
       const payee = group.querySelector('.paymo-graph-detail-group-name')?.textContent?.trim() || '';
       if (!payee) return;
-      const source = selected.mode === 'billing' ? billingRows(selected.month, payee) : null;
+      const source = selected.mode === 'billing' && !dateGrouped ? billingRows(selected.month, payee) : null;
       ensureColumnHeader(group, dateGrouped);
       group.querySelectorAll('.paymo-graph-detail-row').forEach((row, index) => {
         const expenseIndex = Number(row.dataset.expenseIndex);
-        const expense = selected.mode === 'usage' && Number.isInteger(expenseIndex) ? expenses[expenseIndex] : null;
-        const item = expense
-          ? { expense, usageDate: usageDateOf(expense), dueDate: billingPartsOf(expense)[0]?.date || '', amount: Number(expense.amount || 0) }
-          : source?.[index];
+        const expense = row.hasAttribute('data-expense-index') && Number.isInteger(expenseIndex) ? expenses[expenseIndex] : null;
+        const partIndex = Number(row.dataset.partIndex);
+        const part = selected.mode === 'billing' && expense && row.hasAttribute('data-part-index')
+          && Number.isInteger(partIndex) ? billingPartsOf(expense)[partIndex] : null;
+        const item = selected.mode === 'billing'
+          ? part
+            ? { expense, usageDate: usageDateOf(expense), dueDate: part.date, amount: Number(part.amount || 0) }
+            : source?.[index]
+          : expense
+            ? { expense, usageDate: usageDateOf(expense), dueDate: billingPartsOf(expense)[0]?.date || '', amount: Number(expense.amount || 0) }
+            : null;
         if (!item) return;
         const id = item.expense?.id;
         if (id !== undefined && id !== null) row.dataset.expenseId = String(id);

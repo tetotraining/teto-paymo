@@ -78,21 +78,46 @@
     })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
 
-  function billingGroups(month) {
+  function billingGroups(month, descending = true) {
     const groups = new Map();
     expenses.forEach((expense, index) => {
       if (isPaid(expense)) return;
       const name = String(expense.payee || 'その他');
       billingPartsOf(expense).forEach((part, partIndex) => {
-        if (!part.date || ym(part.date) !== month || !part.amount) return;
+        if (!validDate(part.date) || ym(part.date) !== month || !part.amount) return;
         if (!groups.has(name)) groups.set(name, []);
         groups.get(name).push({ expense, index, partIndex, date: part.date, amount: Number(part.amount || 0) });
       });
     });
-    return orderedNames(new Set(groups.keys())).map((name) => {
-      const rows = groups.get(name).sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.index - a.index || b.partIndex - a.partIndex);
+    const order = orderedNames(new Set(groups.keys()));
+    return order.map((name) => {
+      const rows = groups.get(name).sort((a, b) =>
+        (descending ? String(b.date).localeCompare(String(a.date)) : String(a.date).localeCompare(String(b.date))) ||
+        (descending ? b.index - a.index : a.index - b.index) ||
+        (descending ? b.partIndex - a.partIndex : a.partIndex - b.partIndex));
       return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
+    }).sort((a, b) =>
+      (descending ? b.total - a.total : a.total - b.total) || order.indexOf(a.name) - order.indexOf(b.name));
+  }
+
+  // Monthly payment dates are due dates, not usage dates; installment parts
+  // retain their original expense and part indices for editing.
+  function billingDateGroups(month, descending = true) {
+    const groups = new Map();
+    expenses.forEach((expense, index) => {
+      if (isPaid(expense)) return;
+      billingPartsOf(expense).forEach((part, partIndex) => {
+        if (!validDate(part.date) || ym(part.date) !== month || !part.amount) return;
+        if (!groups.has(part.date)) groups.set(part.date, []);
+        groups.get(part.date).push({ expense, index, partIndex, date: part.date, amount: Number(part.amount || 0) });
+      });
     });
+    return Array.from(groups, ([date, rows]) => ({
+      date,
+      rows: rows.sort((a, b) => (descending ? b.index - a.index : a.index - b.index)
+        || (descending ? b.partIndex - a.partIndex : a.partIndex - b.partIndex)),
+      total: rows.reduce((sum, row) => sum + row.amount, 0)
+    })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
 
   function ensureStyle() {
@@ -163,13 +188,13 @@
     document.body.appendChild(page);
     page.querySelector('#paymoGraphDetailBack')?.addEventListener('click', closePage);
     page.querySelector('#paymoGraphDetailToggleView')?.addEventListener('click', () => {
-      if (!activeFilter || activeFilter.mode !== 'usage') return;
+      if (!activeFilter) return;
       activeFilter.grouping = activeFilter.grouping === 'date' ? 'item' : 'date';
       renderPage(activeFilter.month, activeFilter.mode);
       page.querySelector('.paymo-graph-detail-body').scrollTop = 0;
     });
     page.querySelector('#paymoGraphDetailToggleSort')?.addEventListener('click', () => {
-      if (!activeFilter || activeFilter.mode !== 'usage') return;
+      if (!activeFilter) return;
       const key = activeFilter.grouping === 'date' ? 'dateDescending' : 'itemDescending';
       activeFilter[key] = !activeFilter[key];
       renderPage(activeFilter.month, activeFilter.mode);
@@ -182,20 +207,24 @@
   function renderPage(month, mode = 'usage') {
     const page = ensurePage();
     const options = activeFilter?.month === month && activeFilter?.mode === mode ? activeFilter : {};
-    const dateGrouped = mode === 'usage' && options.grouping === 'date';
+    const dateGrouped = options.grouping === 'date';
+    const dateDescending = options.dateDescending !== false;
+    const itemDescending = options.itemDescending !== false;
     const groups = mode === 'billing'
-      ? billingGroups(month)
-      : dateGrouped ? usageDateGroups(month, options.dateDescending !== false) : usageGroups(month, options.itemDescending !== false);
+      ? dateGrouped ? billingDateGroups(month, dateDescending) : billingGroups(month, itemDescending)
+      : dateGrouped ? usageDateGroups(month, dateDescending) : usageGroups(month, itemDescending);
     const total = groups.reduce((sum, group) => sum + group.total, 0);
 
     page.dataset.grouping = dateGrouped ? 'date' : 'item';
-    const actions = page.querySelector('#paymoGraphDetailActions');
-    actions.hidden = mode !== 'usage';
-    page.querySelector('#paymoGraphDetailToggleView').setAttribute('aria-label', dateGrouped ? '項目別表示に切り替え' : '支出日別表示に切り替え');
-    const descending = dateGrouped ? options.dateDescending !== false : options.itemDescending !== false;
+    page.querySelector('#paymoGraphDetailActions').hidden = false;
+    page.querySelector('#paymoGraphDetailToggleView').setAttribute('aria-label', dateGrouped
+      ? '項目別表示に切り替え' : mode === 'billing' ? '支払期日別表示に切り替え' : '支出日別表示に切り替え');
+    const descending = dateGrouped ? dateDescending : itemDescending;
     const nextSortLabel = dateGrouped
       ? descending ? '古い日付順に並び替え' : '新しい日付順に並び替え'
-      : descending ? '合計額の少ない順・明細を利用日の古い順に並び替え' : '合計額の多い順・明細を利用日の新しい順に並び替え';
+      : descending
+        ? (mode === 'billing' ? '合計額の少ない順・明細を支払期日の古い順に並び替え' : '合計額の少ない順・明細を利用日の古い順に並び替え')
+        : (mode === 'billing' ? '合計額の多い順・明細を支払期日の新しい順に並び替え' : '合計額の多い順・明細を利用日の新しい順に並び替え');
     page.querySelector('#paymoGraphDetailToggleSort').setAttribute('aria-label', nextSortLabel);
     page.querySelector('#paymoGraphDetailTitle').textContent = mode === 'billing' ? '月別支払額' : '支出推移';
     page.querySelector('#paymoGraphDetailMonth').textContent = shortMonth(month);
@@ -213,7 +242,7 @@
           </div>
           <div>
             ${group.rows.map((row) => `
-              <div class="paymo-graph-detail-row"${mode === 'usage' ? ` data-expense-index="${row.index}"` : ''}>
+              <div class="paymo-graph-detail-row" data-expense-index="${row.index}"${mode === 'billing' ? ` data-part-index="${row.partIndex}"` : ''}>
                 <span class="paymo-graph-detail-date">${escapeHtml(formatDate(row.date))}</span>
                 <div class="paymo-graph-detail-amount">${yen(row.amount)}</div>
                 ${mode === 'usage' && isPaid(row.expense) ? '<span class="paymo-graph-detail-paid">支払い済</span>' : ''}
