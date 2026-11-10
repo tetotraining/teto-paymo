@@ -78,6 +78,16 @@
     })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }
 
+  // Sort payment-date ties by the expense's actual usage date. Keep stable
+  // index fallbacks for multiple installments with matching dates.
+  function compareBillingRows(a, b, descending = true) {
+    const direction = descending ? -1 : 1;
+    return direction * String(a.date).localeCompare(String(b.date))
+      || direction * String(usageDateOf(a.expense)).localeCompare(String(usageDateOf(b.expense)))
+      || direction * (a.index - b.index)
+      || direction * (a.partIndex - b.partIndex);
+  }
+
   function billingGroups(month, descending = true) {
     const groups = new Map();
     expenses.forEach((expense, index) => {
@@ -91,10 +101,7 @@
     });
     const order = orderedNames(new Set(groups.keys()));
     return order.map((name) => {
-      const rows = groups.get(name).sort((a, b) =>
-        (descending ? String(b.date).localeCompare(String(a.date)) : String(a.date).localeCompare(String(b.date))) ||
-        (descending ? b.index - a.index : a.index - b.index) ||
-        (descending ? b.partIndex - a.partIndex : a.partIndex - b.partIndex));
+      const rows = groups.get(name).sort((a, b) => compareBillingRows(a, b, descending));
       return { name, rows, total: rows.reduce((sum, row) => sum + row.amount, 0) };
     }).sort((a, b) =>
       (descending ? b.total - a.total : a.total - b.total) || order.indexOf(a.name) - order.indexOf(b.name));
@@ -114,8 +121,7 @@
     });
     return Array.from(groups, ([date, rows]) => ({
       date,
-      rows: rows.sort((a, b) => (descending ? b.index - a.index : a.index - b.index)
-        || (descending ? b.partIndex - a.partIndex : a.partIndex - b.partIndex)),
+      rows: rows.sort((a, b) => compareBillingRows(a, b, descending)),
       total: rows.reduce((sum, row) => sum + row.amount, 0)
     })).sort((a, b) => descending ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
   }

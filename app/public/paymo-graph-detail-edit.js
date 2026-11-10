@@ -124,7 +124,9 @@
         });
       });
     });
-    return rows.sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate)) || b.index - a.index || b.partIndex - a.partIndex);
+    return rows.sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate))
+      || String(b.usageDate).localeCompare(String(a.usageDate))
+      || b.index - a.index || b.partIndex - a.partIndex);
   }
 
   function ensureColumnHeader(group, dateGrouped = false) {
