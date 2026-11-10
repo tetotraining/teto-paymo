@@ -1,0 +1,32 @@
+name: Test Paymo Graph Detail Buttons
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'paymo-graph-detail.js'
+      - 'app/public/paymo-graph-detail.js'
+      - 'paymo-graph-detail-edit.js'
+      - 'app/public/paymo-graph-detail-edit.js'
+      - 'tests/paymo-billing-graph-detail.mjs'
+      - '.github/workflows/paymo-graph-detail-test.yml'
+jobs:
+  browser-graph:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm mirrored files and JS syntax
+        run: |
+          cmp paymo-graph-detail.js app/public/paymo-graph-detail.js
+          cmp paymo-graph-detail-edit.js app/public/paymo-graph-detail-edit.js
+          node --check paymo-graph-detail.js
+          node --check paymo-graph-detail-edit.js
+          node --check tests/paymo-billing-graph-detail.mjs
+      - name: Install no-cost test dependency
+        run: npm install --no-save --ignore-scripts playwright-core@1.56.1
+      - name: Browser regression for monthly billing vs usage trend
+        run: node tests/paymo-billing-graph-detail.mjs
